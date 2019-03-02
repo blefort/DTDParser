@@ -9,7 +9,9 @@
 // the IDTDBlock is necessary for the parser to populate and process its collection
 package DTD
 
-import "strings"
+import (
+	"strings"
+)
 
 // Each constant represents a DTD block
 const (
@@ -72,6 +74,30 @@ func join(strs ...string) string {
 	return sb.String()
 }
 
+// Translate convert block type constant to a name
+func Translate(i int) string {
+	switch i {
+	case ATTRIBUTE:
+		return "Attribute"
+	case CDATA:
+		return "CDATA"
+	case COMMENT:
+		return "Comment"
+	case ELEMENT:
+		return "Element"
+	case ENTITY:
+		return "Entity"
+	case PCDATA:
+		return "PCDATA"
+	case EXPORTED_ENTITY:
+		return "Exported"
+	case ATTLIST:
+		return "Attlist"
+	default:
+		panic("Unknown type" + string(i) + " requested")
+	}
+}
+
 /**
  * Methods for entity struct
  */
@@ -100,7 +126,7 @@ func (e Entity) Render() string {
 	}
 
 	if e.Exported {
-		exportedStr = join("%", e.Name, ";")
+		exportedStr = join("\n%", e.Name, ";")
 	}
 
 	if e.Url == "" {
@@ -128,6 +154,16 @@ func (e *Entity) SetExported(v bool) {
 // implements IDTDBlock
 func (e *Entity) GetSrc() string {
 	return e.Src
+}
+
+// IsEntityType check if the interface is a DTD.ExportedEntity
+func IsEntityType(i interface{}) bool {
+	switch i.(type) {
+	case *Entity:
+		return true
+	default:
+		return false
+	}
 }
 
 /**
@@ -171,7 +207,7 @@ func (e *ExportedEntity) Render() string {
 // GetName Get the name
 // implements IDTDBlock
 func (e *ExportedEntity) GetName() string {
-	return "exportedEntity"
+	return e.Name
 }
 
 // SetExported set the current entity to exported
@@ -184,6 +220,16 @@ func (e *ExportedEntity) SetExported(v bool) {
 // implements IDTDBlock
 func (e *ExportedEntity) GetSrc() string {
 	panic("Am exported entity has no src")
+}
+
+// IsExportedEntityType check if the interface is a DTD.ExportedEntity
+func IsExportedEntityType(i interface{}) bool {
+	switch i.(type) {
+	case *ExportedEntity:
+		return true
+	default:
+		return false
+	}
 }
 
 /**

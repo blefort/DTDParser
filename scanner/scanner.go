@@ -31,7 +31,7 @@ func NewScanner(path string, s string) *DTDScanner {
 	return &scanner
 }
 
-//  Next move to the next character
+//  Next Move to the next character
 func (sc *DTDScanner) Next() bool {
 	return sc.Data.Scan()
 }
@@ -41,17 +41,17 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
 	var nType int
 
-	fmt.Printf("looking for characters")
-
-	fmt.Printf("Moving to %s", sc.Data.Text())
 	// seek until a block it found
 	if !sc.IsStartChar() {
 		return nil, errors.New("no block found")
 	}
 
-	fmt.Printf("Analyzing")
 	// determine DTD Block
 	nType = sc.seekType()
+
+	if nType != 0 {
+		fmt.Printf("Block %s found\n", DTD.Translate(nType))
+	}
 
 	// create struct depending DTD type
 	if nType == DTD.COMMENT {
@@ -79,7 +79,9 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	// to see the Exported property to true
 	// That way it could be rendered properly
 	if nType == DTD.EXPORTED_ENTITY {
-		return nil, sc.SeekExportedEntity(), nil
+		var exported DTD.ExportedEntity
+		exported.Name = sc.SeekExportedEntity()
+		return &exported, nil
 	}
 
 	return nil, errors.New("no block found")

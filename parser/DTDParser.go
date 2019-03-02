@@ -38,7 +38,7 @@ var (
 )
 
 // Parser is a structure that represents the parser
-// it can manage multiple DTD
+// it can manage multiple DTD parsers
 type Parser struct {
 	WithComments      bool
 	IgnoreExtRefIssue bool
@@ -120,17 +120,13 @@ func (p *Parser) Parse(filePath string) {
 			continue
 		}
 
-		p.Collection = append(p.Collection, DTDBlock)
-
-		// if export == "" {
-
-		// } else {
-		//   p.SetExportEntity(p.Collection, export)
-		// }
-
+		if DTD.IsExportedEntityType(DTDBlock) {
+			p.SetExportEntity(DTDBlock.GetName())
+		} else {
+			p.Collection = append(p.Collection, DTDBlock)
+		}
 	}
 	log(LogVerbose, "%s blocks found in this DTD %s", len(p.Collection), p.Filepath)
-
 }
 
 // parseExternalEntity Parse an external DTD reference declared in an entity
@@ -165,12 +161,17 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 }
 
 // SetExportEntity Mark an entity block are exported in the collection
-func (p *Parser) SetExportEntity(C []DTD.IDTDBlock, name string) {
-	for idx := range C {
-		if C[idx].GetName() == name {
-			var block DTD.IDTDBlock
-			block = C[idx]
+func (p *Parser) SetExportEntity(name string) {
+	for _, block := range p.Collection {
+		if block.GetName() == name {
+			log(LogFull, "Marking %s as exported", name)
 			block.SetExported(true)
+
+			if DTD.IsEntityType(block) {
+				p.parseExternalEntity(block.(*DTD.Entity))
+			} else {
+				panic("a none entity was mrked to be exported")
+			}
 			return
 		}
 	}
@@ -178,12 +179,6 @@ func (p *Parser) SetExportEntity(C []DTD.IDTDBlock, name string) {
 
 // Render a collection to a or a set of DTD files
 func (p *Parser) Render(parentDir string) {
-
-	if outputDirPath == "" {
-		log(LogVerbose, "No rendering requested")
-		return
-	}
-
 	log(LogFull, "Rendering starts")
 
 	// we process here all the file path of all DTD parsed
@@ -195,6 +190,9 @@ func (p *Parser) Render(parentDir string) {
 	}
 
 	for _, block := range p.Collection {
+
+		// log block info
+		log(LogFull, "Exporting block: \n %#v \n", block)
 
 		// extract origin location of the file
 		src := block.GetSrc()

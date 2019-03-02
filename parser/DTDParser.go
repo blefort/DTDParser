@@ -11,30 +11,22 @@ package DTDParser
 //
 import (
 	"encoding/xml"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/blefort/DTDParser/DTD"
 	"github.com/blefort/DTDParser/scanner"
 )
 
-// LOG LEVELS
-const (
-	LogMute    = 0 // Mute logs (default)
-	LogVerbose = 1 // Steps are presented in the log
-	LogFull    = 2 // Every single operations
-)
-
 var (
-	filepaths         []string
-	logVerbosityLevel int
-	outputDirPath     string
+	filepaths     []string
+	outputDirPath string
 )
 
 // Parser is a structure that represents the parser
@@ -70,14 +62,6 @@ func createOutputFile(filename string) {
 	f.Close()
 }
 
-// SetVerbose allows to set the log verbosity level
-// DTDParser.LogMute default log are muted
-// DTDParser.LogVerbose general processing steps are output to the log
-// DTDParser.LogVerbose all processing steps are output to the log
-func (p *Parser) SetVerbose(b int) {
-	logVerbosityLevel = b
-}
-
 // Parse Parse a DTD using its path
 func (p *Parser) Parse(filePath string) {
 
@@ -87,18 +71,18 @@ func (p *Parser) Parse(filePath string) {
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Fileinfo
 	stat, err := os.Stat(filePath)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	bytes := stat.Size()
-	log(LogVerbose, "Parsing %s, %d bytes", p.Filepath, bytes/1024)
+	log.Infof("Parsing %s, %d bytes", p.Filepath, bytes/1024)
 
 	filepaths = append(filepaths, filepath.Dir(p.Filepath))
 
@@ -116,7 +100,7 @@ func (p *Parser) Parse(filePath string) {
 		DTDBlock, err := scanner.Scan()
 
 		if err != nil {
-			log(LogFull, "%v", err)
+			log.Tracef("%v", err)
 			continue
 		}
 
@@ -126,7 +110,7 @@ func (p *Parser) Parse(filePath string) {
 			p.Collection = append(p.Collection, DTDBlock)
 		}
 	}
-	log(LogVerbose, "%s blocks found in this DTD %s", len(p.Collection), p.Filepath)
+	log.Infof("%d blocks found in this DTD", len(p.Collection))
 }
 
 // parseExternalEntity Parse an external DTD reference declared in an entity
@@ -143,16 +127,15 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 	errMsg := "External DTD '" + e.Url + "' not found, declared in '" + base + "', entity '" + e.Name
 
 	if _, err := os.Stat(path); os.IsNotExist(err) && !p.IgnoreExtRefIssue {
-		panic(errMsg)
+		log.Fatal(errMsg)
 	} else if _, err := os.Stat(path); os.IsNotExist(err) && p.IgnoreExtRefIssue {
-		log(LogVerbose, "-> ERROR:"+errMsg)
+		log.Error(errMsg)
 		return
 	} else {
 
 		extP := NewDTDParser()
 		extP.WithComments = p.WithComments
 		extP.IgnoreExtRefIssue = p.IgnoreExtRefIssue
-		extP.SetVerbose(logVerbosityLevel)
 		extP.Parse(path)
 
 		p.parsers = append(p.parsers, *extP)
@@ -164,13 +147,13 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 func (p *Parser) SetExportEntity(name string) {
 	for _, block := range p.Collection {
 		if block.GetName() == name {
-			log(LogFull, "Marking %s as exported", name)
+			log.Tracef("Marking %s as exported", name)
 			block.SetExported(true)
 
 			if DTD.IsEntityType(block) {
 				p.parseExternalEntity(block.(*DTD.Entity))
 			} else {
-				panic("a none entity was mrked to be exported")
+				log.Fatal("A none entity was marked to be exported")
 			}
 			return
 		}
@@ -179,45 +162,44 @@ func (p *Parser) SetExportEntity(name string) {
 
 // Render a collection to a or a set of DTD files
 func (p *Parser) Render(parentDir string) {
-	log(LogFull, "Rendering starts")
 
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory
 	// the parentDir will be happened to the output dir
 	if parentDir == "" {
 		parentDir = commonPrefix(filepaths)
-		log(LogVerbose, "ParentDir: %s", parentDir)
+		log.Debugf("ParentDir: %s", parentDir)
 	}
 
 	for _, block := range p.Collection {
 
 		// log block info
-		log(LogFull, "Exporting block: \n %#v \n", block)
+		log.Debugf("Exporting block: \n %#v \n", block)
 
 		// extract origin location of the file
 		src := block.GetSrc()
-		log(LogVerbose, "src %s", src)
+		log.Tracef("src %s", src)
 
 		// determine relative directory
 		pDir := filepath.Dir(src)
 
 		// relative dir remove parent directory from the path
 		rDir := strings.TrimPrefix(pDir, parentDir)
-		log(LogVerbose, "rDir %s", rDir)
+		log.Tracef("rDir %s", rDir)
 
 		// absolute from output dir
 		oDir := outputDirPath + "/" + rDir
 
 		if _, err := os.Stat(oDir); os.IsNotExist(err) {
-			log(LogVerbose, "Create: %s", oDir)
+			log.Tracef("Create: %s", oDir)
 			os.MkdirAll(oDir, 0770)
 		}
 
 		finalPath := oDir + "/" + filepath.Base(src)
-		log(LogVerbose, "finalPath %s", finalPath)
+		log.Tracef("finalPath %s", finalPath)
 
 		if _, err := os.Stat(finalPath); os.IsNotExist(err) {
-			log(LogVerbose, "Create DTD: %s", finalPath)
+			log.Tracef("Create DTD: %s", finalPath)
 			createOutputFile(finalPath)
 			renderHead(finalPath)
 		}
@@ -230,8 +212,6 @@ func (p *Parser) Render(parentDir string) {
 	for _, parser := range p.parsers {
 		parser.Render(parentDir)
 	}
-
-	PrintMemUsage()
 }
 
 // writeToFile write to a DTD file
@@ -288,24 +268,4 @@ func commonPrefix(paths []string) string {
 // renderHead Render the head of the DTD
 func renderHead(filepath string) {
 	writeToFile(filepath, xml.Header)
-}
-
-// log log
-// will be moved in a separate file in a next version
-func log(level int, format string, a ...interface{}) {
-	if logVerbosityLevel > 0 && logVerbosityLevel >= level {
-		fmt.Fprintf(os.Stdout, "-"+format+"\n", a...)
-	}
-}
-
-// PrintMemUsage Print memory usage
-func PrintMemUsage() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	log(LogFull, "Alloc = %v MiB, TotalAlloc = %v MiB, tSys = %v MiB, tNumGC = %v", bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), m.NumGC)
-}
-
-// bToMb helper to convert bytes to megabytes, used for development
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
 }

@@ -2,15 +2,16 @@
 // Use of this source code is governed under MIT License
 // that can be found in the LICENSE file.
 
-// The scanner package allows to extract information from the DTD and create corresponding DTD structs
+// scanner package allows to extract information from the DTD and create corresponding DTD structs
 package scanner
 
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/blefort/DTDParser/DTD"
 )
@@ -31,7 +32,7 @@ func NewScanner(path string, s string) *DTDScanner {
 	return &scanner
 }
 
-//  Next Move to the next character
+// Next Move to the next character
 func (sc *DTDScanner) Next() bool {
 	return sc.Data.Scan()
 }
@@ -50,7 +51,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	nType = sc.seekType()
 
 	if nType != 0 {
-		fmt.Printf("Block %s found\n", DTD.Translate(nType))
+		log.Trace("Block %s found\n", DTD.Translate(nType))
 	}
 
 	// create struct depending DTD type
@@ -160,7 +161,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	// set the name
 	a.Name = parts[0]
 
-	fmt.Printf("Received: %s\n Parts: %v\n Attlist: %v\n", s, parts, a)
+	log.Trace("Received: %s\n Parts: %v\n Attlist: %v\n", s, parts, a)
 
 	return &a
 }

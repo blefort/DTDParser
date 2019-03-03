@@ -1,4 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/blefort/DTDParser)](https://goreportcard.com/report/github.com/blefort/DTDParser)
+[![Go Report Card](https://goreportcard.com/badge/github.com/blefort/DTDParser)](https://goreportcard.com/report/github.com/blefort/DTDParser) [![Build Status](https://travis-ci.org/blefort/DTDParser.svg?branch=master)](https://travis-ci.org/blefort/DTDParser)
 
 # A DTDParser
 

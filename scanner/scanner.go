@@ -2,7 +2,7 @@
 // Use of this source code is governed under MIT License
 // that can be found in the LICENSE file.
 
-// scanner package allows to extract information from the DTD and create corresponding DTD structs
+// package scanner allows to extract information from the DTD and create corresponding DTD structs
 package scanner
 
 import (
@@ -105,7 +105,7 @@ func ParseEntity(s string) *DTD.Entity {
 	space := regexp.MustCompile(`\s+`)
 	s2 := space.ReplaceAllString(s1, " ")
 
-	regex := regexp.MustCompile(`(%)\s([^\s]+)|^([^\s]+)|(PUBLIC|SYSTEM)|"([^"]+)"`)
+	regex := regexp.MustCompile(`\s?(%)\s([^\s]+)|^([^\s]+)|(PUBLIC|SYSTEM)|"([^"]+)"`)
 	parts := regex.FindAllString(s2, -1)
 
 	// determine if ExternalDTD
@@ -144,24 +144,33 @@ func ParseEntity(s string) *DTD.Entity {
 }
 
 // ParseAttlist Parse a string and return pointer to a DTD.Attlist
-// Syntax used
-// <!ATTLIST element-name attribute-name attribute-type #FIXED "value">
+// Declaration Types
+// #REQUIRED
+// <!ATTLIST ElementName AttributeName AttributeType #REQUIRED>
+// #IMPLIED
+// <!ATTLIST ElementName AttributeName AttributeType #IMPLED>
+//
+// #FIXED
+// <!ATTLIST ElementName AttributeName AttributeType #FIXED AttributeValue>
+//
+// Attribute type can't be determined whem parsing because some entities can be part of the content
 //
 func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	var a DTD.Attlist
+	var s2 string
 
 	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
 	s1 := regexLineBreak.ReplaceAllString(s, " ")
 
 	space := regexp.MustCompile(`\s+`)
-	s2 := space.ReplaceAllString(s1, " ")
+	s2 = space.ReplaceAllString(s1, " ")
 
-	parts := strings.Split(s2, " ")
+	regex := regexp.MustCompile(`([%?\w\-]+)`)
+	parts := regex.FindAllString(s2, -1)
 
 	// set the name
 	a.Name = parts[0]
-
-	log.Trace("Received: %s\n Parts: %v\n Attlist: %v\n", s, parts, a)
+	a.Value = s2[len(a.Name) : len(s2)-1]
 
 	return &a
 }
@@ -239,6 +248,7 @@ func (sc *DTDScanner) seekType() int {
 // SeekEntity seek an entity
 func (sc *DTDScanner) SeekEntity() string {
 	var s string
+
 	for sc.Data.Scan() {
 		if sc.Data.Text() == ">" {
 			break
@@ -252,22 +262,19 @@ func (sc *DTDScanner) SeekEntity() string {
 func (sc *DTDScanner) SeekComment() string {
 
 	var s string
-	var nChar int
-
-	nChar = 0
 
 	for sc.Data.Scan() {
-		if sc.Data.Text() == "-" && nChar == 1 {
-			continue
+		var last string
+
+		// last 2 character of a string
+		if len(s) > 2 {
+			last = s[len(s)-2:]
 		}
-		if sc.Data.Text() == "-" && nChar == 2 {
-			continue
-		}
-		if sc.Data.Text() == ">" {
+
+		if sc.Data.Text() == ">" && last == "--" {
 			break
 		}
 		s += sc.Data.Text()
-		nChar++
 	}
 	return s
 }

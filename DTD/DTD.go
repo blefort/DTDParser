@@ -4,6 +4,10 @@
 
 // Package DTD Represents main structs of a DTD
 //
+// Specifications: https://www.w3.org/TR/xml11/
+//
+// This is a simplified implementation for my need
+//
 // This package offer one struct which represents every blocks of the DTD
 // Each struct will implements the IDTDBlock
 // the IDTDBlock is necessary for the parser to populate and process its collection
@@ -15,6 +19,8 @@ import (
 
 // Each constant represents a DTD block
 const (
+
+	// DTD Block type
 	ATTRIBUTE       = 1
 	CDATA           = 2
 	COMMENT         = 3
@@ -23,6 +29,11 @@ const (
 	PCDATA          = 6
 	EXPORTED_ENTITY = 7
 	ATTLIST         = 8
+
+	// Attribute Type Definitions
+	StringType     = 1
+	TokenizedType  = 2
+	EnumeratedType = 3
 )
 
 // IDTDBlock Interface for DTD block
@@ -31,6 +42,11 @@ type IDTDBlock interface {
 	Render() string
 	SetExported(v bool)
 	GetSrc() string
+}
+
+// cdata represents a CDATA section
+type cdata struct {
+	value string
 }
 
 // Entity represents a DTD Entity
@@ -53,9 +69,13 @@ type ExportedEntity struct {
 
 // Attlist represent an attlist
 type Attlist struct {
-	Name  string
-	Value string
-	Src   string
+	Name     string
+	Value    string
+	Src      string
+	AttName  string
+	AttType  string
+	Implied  bool
+	Required bool
 }
 
 // Comment represent a comment
@@ -239,7 +259,7 @@ func IsExportedEntityType(i interface{}) bool {
 // Render an Attlist
 // implements IDTDBlock
 func (a *Attlist) Render() string {
-	return "<!-- " + a.Value + " -->"
+	return join("<!ATTLIST", a.Name, " ", a.Value, ">", "\n")
 }
 
 // GetName Get the name

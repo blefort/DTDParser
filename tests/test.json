@@ -1,0 +1,5 @@
+[
+    { "Ntype": 3, "Value": "Comment test" },
+    { "Ntype": 3, "Value": " Comment test " },
+    { "Ntype": 3, "Value": " Comment with <markup>Foo</markup> " }
+]

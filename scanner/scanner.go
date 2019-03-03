@@ -42,6 +42,8 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
 	var nType int
 
+	log.Tracef("Character '%s'", sc.Data.Text())
+
 	// seek until a block it found
 	if !sc.IsStartChar() {
 		return nil, errors.New("no block found")
@@ -50,8 +52,10 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	// determine DTD Block
 	nType = sc.seekType()
 
+	log.Tracef("Possible type is %v", nType)
+
 	if nType != 0 {
-		log.Trace("Block %s found\n", DTD.Translate(nType))
+		log.Tracef("Block %s found", DTD.Translate(nType))
 	}
 
 	// create struct depending DTD type
@@ -98,12 +102,9 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 //
 func ParseEntity(s string) *DTD.Entity {
 	var e DTD.Entity
+	var s2 string
 
-	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
-	s1 := regexLineBreak.ReplaceAllString(s, " ")
-
-	space := regexp.MustCompile(`\s+`)
-	s2 := space.ReplaceAllString(s1, " ")
+	s2 = normalizeSpace(s)
 
 	regex := regexp.MustCompile(`\s?(%)\s([^\s]+)|^([^\s]+)|(PUBLIC|SYSTEM)|"([^"]+)"`)
 	parts := regex.FindAllString(s2, -1)
@@ -159,11 +160,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	var a DTD.Attlist
 	var s2 string
 
-	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
-	s1 := regexLineBreak.ReplaceAllString(s, " ")
-
-	space := regexp.MustCompile(`\s+`)
-	s2 = space.ReplaceAllString(s1, " ")
+	s2 = normalizeSpace(s)
 
 	regex := regexp.MustCompile(`([%?\w\-]+)`)
 	parts := regex.FindAllString(s2, -1)
@@ -185,19 +182,9 @@ func (sc *DTDScanner) ParseComment(s string) *DTD.Comment {
 
 // IsStartChar Determine if a character is the beginning of a DTD block
 func (sc *DTDScanner) IsStartChar() bool {
-	return sc.Data.Text() == "<" || sc.Data.Text() == "%"
-}
-
-// SeekWord Assemble every character into a single string until a space is found
-func (sc *DTDScanner) SeekWord() string {
-	var s string
-	for sc.Data.Scan() {
-		if sc.isWhitespace() {
-			return s
-		}
-		s += sc.Data.Text()
-	}
-	return s
+	ret := sc.Data.Text() == "<" || sc.Data.Text() == "%"
+	log.Tracef("IsStartChar: %t", ret)
+	return ret
 }
 
 // SeekExportedEntity Seek an exported DTD entity
@@ -226,20 +213,34 @@ func (sc *DTDScanner) isWhitespace() bool {
 // seekType Seek the type of the next DTD block
 func (sc *DTDScanner) seekType() int {
 
+	var s string
+
 	if sc.Data.Text() == "%" {
 		return DTD.EXPORTED_ENTITY
 	}
 
-	w := sc.SeekWord()
+	for sc.Data.Scan() {
 
-	if w == "!--" {
-		return DTD.COMMENT
-	}
-	if w == "!ENTITY" {
-		return DTD.ENTITY
-	}
-	if w == "!ATTLIST" {
-		return DTD.ATTLIST
+		log.Tracef("Character '%s'", sc.Data.Text())
+
+		s += sc.Data.Text()
+
+		log.Tracef("Word is '%s'", s)
+
+		if sc.isWhitespace() {
+			return 0
+		}
+
+		if s == "!--" {
+			return DTD.COMMENT
+		}
+		if s == "!ENTITY" {
+			return DTD.ENTITY
+		}
+		if s == "!ATTLIST" {
+			return DTD.ATTLIST
+		}
+
 	}
 
 	return 0
@@ -250,12 +251,23 @@ func (sc *DTDScanner) SeekEntity() string {
 	var s string
 
 	for sc.Data.Scan() {
+
+		log.Tracef("Character '%s'", sc.Data.Text())
+
 		if sc.Data.Text() == ">" {
 			break
 		}
 		s += sc.Data.Text()
 	}
 	return s
+}
+
+// normalizeSpace Convert Line breaks, multiple space into a single space
+func normalizeSpace(s string) string {
+	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
+	s1 := regexLineBreak.ReplaceAllString(s, " ")
+	space := regexp.MustCompile(`\s+`)
+	return space.ReplaceAllString(s1, " ")
 }
 
 // SeekComment Seek a comment
@@ -265,6 +277,8 @@ func (sc *DTDScanner) SeekComment() string {
 
 	for sc.Data.Scan() {
 		var last string
+
+		log.Tracef("Character '%s'", sc.Data.Text())
 
 		// last 2 character of a string
 		if len(s) > 2 {

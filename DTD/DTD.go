@@ -42,11 +42,12 @@ type IDTDBlock interface {
 	Render() string
 	SetExported(v bool)
 	GetSrc() string
+	GetValue() string
 }
 
 // cdata represents a CDATA section
 type cdata struct {
-	value string
+	Value string
 }
 
 // Entity represents a DTD Entity
@@ -64,7 +65,8 @@ type Entity struct {
 
 // ExportedEntity represent an exported entity
 type ExportedEntity struct {
-	Name string
+	Name  string
+	Value string
 }
 
 // Attlist represent an attlist
@@ -176,6 +178,12 @@ func (e *Entity) GetSrc() string {
 	return e.Src
 }
 
+// GetValue Get the value
+// implements IDTDBlock
+func (e *Entity) GetValue() string {
+	return e.Value
+}
+
 // IsEntityType check if the interface is a DTD.ExportedEntity
 func IsEntityType(i interface{}) bool {
 	switch i.(type) {
@@ -214,6 +222,12 @@ func (c *Comment) GetSrc() string {
 	return c.Src
 }
 
+// GetValue Get the value
+// implements IDTDBlock
+func (c *Comment) GetValue() string {
+	return c.Value
+}
+
 /**
  * Methods for ExportedEntity
  */
@@ -240,6 +254,12 @@ func (e *ExportedEntity) SetExported(v bool) {
 // implements IDTDBlock
 func (e *ExportedEntity) GetSrc() string {
 	panic("Am exported entity has no src")
+}
+
+// GetValue Get the value
+// implements IDTDBlock
+func (e *ExportedEntity) GetValue() string {
+	return e.Value
 }
 
 // IsExportedEntityType check if the interface is a DTD.ExportedEntity
@@ -278,4 +298,10 @@ func (a *Attlist) SetExported(v bool) {
 // implements IDTDBlock
 func (a *Attlist) GetSrc() string {
 	return a.Src
+}
+
+// GetValue Get the value
+// implements IDTDBlock
+func (a *Attlist) GetValue() string {
+	return a.Value
 }

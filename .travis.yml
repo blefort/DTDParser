@@ -1,0 +1,8 @@
+# Copyright 2019 Bertrand Lefort. All rights reserved.
+# Use of this source code is governed under MIT License
+# that can be found in the LICENSE file.
+sudo: false
+language: go
+
+go:
+- 1.8.x

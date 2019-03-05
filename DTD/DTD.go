@@ -41,6 +41,7 @@ type IDTDBlock interface {
 	GetName() string
 	Render() string
 	SetExported(v bool)
+	GetExported() bool
 	GetSrc() string
 	GetValue() string
 	GetParameter() bool
@@ -174,6 +175,12 @@ func (e *Entity) SetExported(v bool) {
 	e.Exported = v
 }
 
+// GetExported Tells if the entity was exported
+// implements IDTDBlock
+func (e *Entity) GetExported() bool {
+	return e.Exported
+}
+
 // GetSrc return the source filename where the entity was first found
 // implements IDTDBlock
 func (e *Entity) GetSrc() string {
@@ -192,7 +199,7 @@ func (e *Entity) GetParameter() bool {
 	return e.Parameter
 }
 
-// GetURl return the url (for entiry only)
+// GetUrl the entity url
 // implements IDTDBlock
 func (e *Entity) GetUrl() string {
 	return e.Url
@@ -248,10 +255,16 @@ func (c *Comment) GetParameter() bool {
 	panic("Comment have no Parameter")
 }
 
-// GetURl return the url (for entiry only)
+// GetUrl the entity url
 // implements IDTDBlock
 func (c *Comment) GetUrl() string {
 	panic("GetUrl not allowed for this block")
+}
+
+// GetExported Unused, tells if the comment was exported
+// implements IDTDBlock
+func (c *Comment) GetExported() bool {
+	panic("Comment are not exported")
 }
 
 /**
@@ -294,10 +307,16 @@ func (e *ExportedEntity) GetParameter() bool {
 	panic("ExportedEntity have no Parameter")
 }
 
-// GetURl return the url (for entiry only)
+// GetUrl the entity url
 // implements IDTDBlock
 func (e *ExportedEntity) GetUrl() string {
 	panic("GetUrl not allowed for this block")
+}
+
+// GetExported Unused, tells if the comment was exported
+// implements IDTDBlock
+func (e *ExportedEntity) GetExported() bool {
+	panic("ExportedEntity are not exported")
 }
 
 // IsExportedEntityType check if the interface is a DTD.ExportedEntity
@@ -350,8 +369,14 @@ func (a *Attlist) GetParameter() bool {
 	panic("Attlist have no Parameter")
 }
 
-// GetURl return the url (for entiry only)
+// GetUrl the entity url
 // implements IDTDBlock
 func (a *Attlist) GetUrl() string {
 	panic("GetUrl not allowed for this block")
+}
+
+// GetExported Unused, tells if the comment was exported
+// implements IDTDBlock
+func (a *Attlist) GetExported() bool {
+	panic("Attlist are not exported")
 }

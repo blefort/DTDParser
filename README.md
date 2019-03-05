@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/blefort/DTDParser.svg?branch=master)](https://travis-ci.org/blefort/DTDParser) [![Go Report Card](https://goreportcard.com/badge/github.com/blefort/DTDParser)](https://goreportcard.com/report/github.com/blefort/DTDParser)  [![GoDoc](https://godoc.org/github.com/blefort/DTDParser?status.svg)](https://godoc.org/github.com/blefort/DTDParser) 
+[![Build Status](https://travis-ci.org/blefort/DTDParser.svg?branch=master)](https://travis-ci.org/blefort/DTDParser) [![codecov](https://codecov.io/gh/blefort/DTDParser/branch/master/graph/badge.svg)](https://codecov.io/gh/blefort/DTDParser) [![Go Report Card](https://goreportcard.com/badge/github.com/blefort/DTDParser)](https://goreportcard.com/report/github.com/blefort/DTDParser)  [![GoDoc](https://godoc.org/github.com/blefort/DTDParser?status.svg)](https://godoc.org/github.com/blefort/DTDParser) 
 
 # A DTDParser
 

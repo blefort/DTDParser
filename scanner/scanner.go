@@ -93,32 +93,34 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 }
 
 // ParseEntity Parse a string and return pointer to a DTD.Entity
-// Use Cases:
+// @ref https://www.w3.org/TR/xml11/#sec-entity-decl
 //
-// <!ENTITY  name value>
-// <!ENTITY % name PUBLIC REFERENCE URL>
-// <!ENTITY % name SYSTEM URL">
-// <!ENTITY % name PUBLIC REFERENCE URL>
+// Entity Declaration
+// [70]   	EntityDecl	   ::=   	GEDecl | PEDecl
+// [71]   	GEDecl	   ::=   	'<!ENTITY' S Name S EntityDef S? '>'
+// [72]   	PEDecl	   ::=   	'<!ENTITY' S '%' S Name S PEDef S? '>'
+// [73]   	EntityDef	   ::=   	EntityValue | (ExternalID NDataDecl?)
+// [74]   	PEDef	   ::=   	EntityValue | ExternalID
 //
 func ParseEntity(s string) *DTD.Entity {
 	var e DTD.Entity
 	var s2 string
 
 	s2 = normalizeSpace(s)
+	parts := seekWords(s2)
 
-	regex := regexp.MustCompile(`\s?(%)\s([^\s]+)|^([^\s]+)|(PUBLIC|SYSTEM)|"([^"]+)"`)
-	parts := regex.FindAllString(s2, -1)
-
-	// determine if ExternalDTD
-	nameParts := strings.Split(parts[0], " ")
-	if len(nameParts) == 2 {
+	// parameter
+	if parts[0] == "%" {
 		e.Parameter = true
-		e.Name = nameParts[1]
+		e.Name = parts[1]
 	} else {
 		e.Name = parts[0]
 	}
 
 	for _, part := range parts {
+
+		log.Tracef("part is %v", part)
+
 		if part == "PUBLIC" {
 			e.Public = true
 		}
@@ -142,6 +144,19 @@ func ParseEntity(s string) *DTD.Entity {
 	}
 
 	return &e
+}
+
+// seekWords Walk a string and identify every words
+func seekWords(s string) []string {
+	regex := regexp.MustCompile(`[^\s"']+|"([^"]*)"|'([^']*)'`)
+	parts := regex.FindAllString(s, -1)
+	log.Tracef("seekWords found %+v", parts)
+	return parts
+}
+
+// isQuoted returns true if a character is quote or a double quote
+func isQuoted(s string) bool {
+	return s == "\"" || s == "'"
 }
 
 // ParseAttlist Parse a string and return pointer to a DTD.Attlist
@@ -267,7 +282,9 @@ func normalizeSpace(s string) string {
 	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
 	s1 := regexLineBreak.ReplaceAllString(s, " ")
 	space := regexp.MustCompile(`\s+`)
-	return space.ReplaceAllString(s1, " ")
+	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
+	log.Tracef("Normalized string is '%s'", nm)
+	return nm
 }
 
 // SeekComment Seek a comment

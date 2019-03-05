@@ -43,6 +43,8 @@ type IDTDBlock interface {
 	SetExported(v bool)
 	GetSrc() string
 	GetValue() string
+	GetParameter() bool
+	GetUrl() string
 }
 
 // cdata represents a CDATA section
@@ -184,6 +186,18 @@ func (e *Entity) GetValue() string {
 	return e.Value
 }
 
+// GetParameter return parameter for entity only
+// implements IDTDBlock
+func (e *Entity) GetParameter() bool {
+	return e.Parameter
+}
+
+// GetURl return the url (for entiry only)
+// implements IDTDBlock
+func (e *Entity) GetUrl() string {
+	return e.Url
+}
+
 // IsEntityType check if the interface is a DTD.ExportedEntity
 func IsEntityType(i interface{}) bool {
 	switch i.(type) {
@@ -228,6 +242,18 @@ func (c *Comment) GetValue() string {
 	return c.Value
 }
 
+// GetParameter return parameter for entity only
+// implements IDTDBlock
+func (c *Comment) GetParameter() bool {
+	panic("Comment have no Parameter")
+}
+
+// GetURl return the url (for entiry only)
+// implements IDTDBlock
+func (c *Comment) GetUrl() string {
+	panic("GetUrl not allowed for this block")
+}
+
 /**
  * Methods for ExportedEntity
  */
@@ -260,6 +286,18 @@ func (e *ExportedEntity) GetSrc() string {
 // implements IDTDBlock
 func (e *ExportedEntity) GetValue() string {
 	return e.Value
+}
+
+// GetParameter return parameter for entity only
+// implements IDTDBlock
+func (e *ExportedEntity) GetParameter() bool {
+	panic("ExportedEntity have no Parameter")
+}
+
+// GetURl return the url (for entiry only)
+// implements IDTDBlock
+func (e *ExportedEntity) GetUrl() string {
+	panic("GetUrl not allowed for this block")
 }
 
 // IsExportedEntityType check if the interface is a DTD.ExportedEntity
@@ -304,4 +342,16 @@ func (a *Attlist) GetSrc() string {
 // implements IDTDBlock
 func (a *Attlist) GetValue() string {
 	return a.Value
+}
+
+// GetParameter return parameter for entity only
+// implements IDTDBlock
+func (a *Attlist) GetParameter() bool {
+	panic("Attlist have no Parameter")
+}
+
+// GetURl return the url (for entiry only)
+// implements IDTDBlock
+func (a *Attlist) GetUrl() string {
+	panic("GetUrl not allowed for this block")
 }

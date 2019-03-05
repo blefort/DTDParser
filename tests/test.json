@@ -4,62 +4,79 @@
        "Parameter":false,
        "Name":"comment",
        "Value":"Comment test",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":3,
        "Parameter":false,
        "Name":"comment",
        "Value":" Comment test ",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":3,
        "Parameter":false,
        "Name":"comment",
        "Value":" Comment with <markup>Foo</markup> ",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":false,
        "Name":"entityname",
        "Value":"\"replacement text\"",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":true,
        "Name":"concept.content",
        "Value":"\"((%title;), (%titlealts;)?, (%abstract; | %shortdesc;)?, (%prolog;)?, (%conbody;)?, (%related-links;)?, %concept-info-types;)* )\"",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":true,
        "Name":"concept-dec",
        "Value":"\"-//OASIS//ENTITIES DITA 1.2 Concept//EN\"",
-       "url": "concept.ent"
+       "Url": "concept.ent",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":true,
        "Name":"pub",
        "Value":"\"&#xc9;ditions Gallimard\"",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":false,
        "Name":"rights",
        "Value":"\"All rights reserved\"",
-       "url": ""
+       "Url": "",
+       "Exported": false
     },
     {  
        "Ntype":5,
        "Parameter":false,
        "Name":"book",
        "Value":"\"La Peste: Albert Camus, &#xA9; 1947 %pub;. &rights;\"",
-       "url": ""
+       "Url": "",
+       "Exported": false
+    },
+    {  
+       "Ntype":5,
+       "Parameter":true,
+       "Name":"hi-d-dec",
+       "Value":"\"-//OASIS//ENTITIES DITA 1.2 Highlight Domain//EN\"",
+       "Url": "highlightDomainTest.ent",
+       "Exported": true
     }
  ]

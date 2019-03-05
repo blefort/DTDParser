@@ -15,8 +15,11 @@ import (
 const dirTest = "tests/"
 
 type testResult struct {
-	Ntype int
-	Value string
+	Ntype     int
+	Name      string
+	Value     string
+	Parameter bool
+	Url       string
 }
 
 // TestMain Test Initialization
@@ -44,7 +47,7 @@ func loadTests(file string) []testResult {
 	return tests
 }
 
-func TestParseComment(t *testing.T) {
+func TestParseDTDBlock(t *testing.T) {
 	var tests []testResult
 
 	// New parser
@@ -69,8 +72,16 @@ func TestParseComment(t *testing.T) {
 		parsedBlock := p.Collection[idx]
 		expectedBlock := getType(test)
 
+		log.Tracef("parsedBlock is: %+v and expectedBlock is: %+v", parsedBlock, expectedBlock)
+
 		t.Run("Check DTD Type", checkType(parsedBlock, expectedBlock))
-		t.Run("Check value", checkValue(parsedBlock.GetValue(), test.Value))
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
+
+		if DTD.IsEntityType(expectedBlock) {
+			t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
+			t.Run("Check Url", checkStrValue(parsedBlock.GetUrl(), test.Url))
+		}
 
 	}
 }
@@ -84,11 +95,20 @@ func checkType(parsed DTD.IDTDBlock, expected DTD.IDTDBlock) func(*testing.T) {
 	}
 }
 
-// checkValue Check if the block found from the parser has the expected value
-func checkValue(parsed string, expected string) func(*testing.T) {
+// checkStrValue Check if the block found from the parser has the expected value
+func checkStrValue(parsed string, expected string) func(*testing.T) {
 	return func(t *testing.T) {
 		if parsed != expected {
 			t.Errorf("Received wrong value, '%s' instead if '%s'", parsed, expected)
+		}
+	}
+}
+
+// checkBoolValue Check if the block found from the parser has the expected value
+func checkBoolValue(a bool, b bool) func(*testing.T) {
+	return func(t *testing.T) {
+		if a != b {
+			t.Errorf("Received wrong bool value, '%t' instead if '%t'", a, b)
 		}
 	}
 }
@@ -99,6 +119,9 @@ func getType(test testResult) DTD.IDTDBlock {
 	case DTD.COMMENT:
 		var comment DTD.Comment
 		return &comment
+	case DTD.ENTITY:
+		var entity DTD.Entity
+		return &entity
 	default:
 		log.Panicf("type '%d' not found", test.Ntype)
 	}

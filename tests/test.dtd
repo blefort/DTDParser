@@ -2,4 +2,11 @@
 <!--Comment test-->
 <!-- Comment test -->
 <!-- Comment with <markup>Foo</markup> -->
+<!ENTITY entityname "replacement text">
+<!ENTITY % concept.content "((%title;), (%titlealts;)?, (%abstract; | %shortdesc;)?, (%prolog;)?, (%conbody;)?, (%related-links;)?, %concept-info-types;)* )">
+<!ENTITY % concept-dec PUBLIC "-//OASIS//ENTITIES DITA 1.2 Concept//EN" "concept.ent" >
+<!ENTITY % pub    "&#xc9;ditions Gallimard" >
+<!ENTITY   rights "All rights reserved" >
+<!ENTITY   book   "La Peste: Albert Camus,
+&#xA9; 1947 %pub;. &rights;" >
 

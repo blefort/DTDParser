@@ -57,6 +57,7 @@ func TestParseDTDBlock(t *testing.T) {
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
 	p.Parse("tests/test.dtd")
+	p.SetOutputPath("tmp")
 
 	tests = loadTests("tests/test.json")
 	log.Warnf("tests %+v", tests)
@@ -82,6 +83,8 @@ func TestParseDTDBlock(t *testing.T) {
 			t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
 			t.Run("Check Url", checkStrValue(parsedBlock.GetUrl(), test.Url))
 		}
+
+		t.Run("Render", render(p))
 
 	}
 }
@@ -110,6 +113,13 @@ func checkBoolValue(a bool, b bool) func(*testing.T) {
 		if a != b {
 			t.Errorf("Received wrong bool value, '%t' instead if '%t'", a, b)
 		}
+	}
+}
+
+// Render
+func render(p *DTDParser.Parser) func(*testing.T) {
+	return func(t *testing.T) {
+		p.Render("")
 	}
 }
 

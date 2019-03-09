@@ -6,9 +6,11 @@
 //
 // Specifications: https://www.w3.org/TR/xml11/
 //
-// This is a simplified implementation for my need
+// Found this reference very usefull: https://xmlwriter.net/xml_guide/attlist_declaration.shtml
 //
-// This package offer one struct which represents every blocks of the DTD
+// This is a simplified implementation
+//
+// This package offers one struct per DTD blocks
 // Each struct will implements the IDTDBlock
 // the IDTDBlock is necessary for the parser to populate and process its collection
 package DTD
@@ -17,12 +19,10 @@ import (
 	"strings"
 )
 
-// Each constant represents a DTD block
 const (
 
 	// DTD Block type
 	ATTRIBUTE       = 1
-	CDATA           = 2
 	COMMENT         = 3
 	ELEMENT         = 4
 	ENTITY          = 5
@@ -30,10 +30,21 @@ const (
 	EXPORTED_ENTITY = 7
 	ATTLIST         = 8
 
-	// Attribute Type Definitions
-	StringType     = 1
-	TokenizedType  = 2
-	EnumeratedType = 3
+	// string type
+	CDATA = 9
+
+	// Tokenized Attribute type
+	TOKEN_ID       = 10
+	TOKEN_IDREF    = 11
+	TOKEN_IDREFS   = 12
+	TOKEN_ENTITY   = 13
+	TOKEN_ENTITIES = 14
+	TOKEN_NMTOKEN  = 15
+	TOKEN_NMTOKENS = 16
+
+	//Enumerated Attribute Type:	Attribute Description:
+	ENUM_NOTATION = 17
+	ENUM_ENUM     = 18
 )
 
 // IDTDBlock Interface for DTD block
@@ -46,11 +57,6 @@ type IDTDBlock interface {
 	GetValue() string
 	GetParameter() bool
 	GetUrl() string
-}
-
-// cdata represents a CDATA section
-type cdata struct {
-	Value string
 }
 
 // Entity represents a DTD Entity
@@ -72,15 +78,22 @@ type ExportedEntity struct {
 	Value string
 }
 
-// Attlist represent an attlist
-type Attlist struct {
+// Attribute represent an attribute
+type Attribute struct {
 	Name     string
+	Type     int
+	Default  string
 	Value    string
-	Src      string
-	AttName  string
-	AttType  string
 	Implied  bool
 	Required bool
+}
+
+// Attlist represent an attlist
+type Attlist struct {
+	Name       string
+	Value      string
+	Src        string
+	Attributes []Attribute
 }
 
 // Comment represent a comment
@@ -267,6 +280,16 @@ func (c *Comment) GetExported() bool {
 	panic("Comment are not exported")
 }
 
+// IsCommentType check if the interface is a DTD.Comment
+func IsCommentType(i interface{}) bool {
+	switch i.(type) {
+	case *Comment:
+		return true
+	default:
+		return false
+	}
+}
+
 /**
  * Methods for ExportedEntity
  */
@@ -379,4 +402,14 @@ func (a *Attlist) GetUrl() string {
 // implements IDTDBlock
 func (a *Attlist) GetExported() bool {
 	panic("Attlist are not exported")
+}
+
+// IsAttlistType check if the interface is a DTD.Comment
+func IsAttlistType(i interface{}) bool {
+	switch i.(type) {
+	case *Attlist:
+		return true
+	default:
+		return false
+	}
 }

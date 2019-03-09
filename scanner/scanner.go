@@ -2,7 +2,7 @@
 // Use of this source code is governed under MIT License
 // that can be found in the LICENSE file.
 
-// package scanner allows to extract information from the DTD and create corresponding DTD structs
+// Package scanner allows to extract information from the DTD and create corresponding DTD structs
 package scanner
 
 import (
@@ -177,14 +177,71 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 
 	s2 = normalizeSpace(s)
 
-	regex := regexp.MustCompile(`([%?\w\-]+)`)
-	parts := regex.FindAllString(s2, -1)
+	parts := seekWords(s2)
+	l := len(parts)
 
-	// set the name
-	a.Name = parts[0]
-	a.Value = s2[len(a.Name) : len(s2)-1]
+	for i := 0; i <= l; i++ {
+		part := parts[i]
+
+		if i == 0 {
+			a.Name = part
+			continue
+		}
+
+		if strings.HasPrefix(part, "%") {
+			var attr DTD.Attribute
+			attr.Value = part
+			a.Attributes = append(a.Attributes, attr)
+			continue
+		}
+
+		var attr DTD.Attribute
+
+		attr.Name = part
+		nType := seekAttributeType(parts[i+1])
+
+		if nType == 0 {
+			log.Fatal("ParseAttlist: Could not identitfy attribute type")
+		}
+
+		attr.Type = nType
+		//attr.Default =
+
+		log.Tracef("ParseAttlist: part '%s'", part)
+		log.Tracef("ParseAttlist: ntype '%d'", nType)
+
+		break
+	}
 
 	return &a
+}
+
+// seekAttributeType Attempt to identify attribute type
+func seekAttributeType(s string) int {
+	switch strings.ToUpper(s) {
+	case "CDATA":
+		return DTD.CDATA
+	case "ID":
+		return DTD.TOKEN_ID
+	case "IDREF":
+		return DTD.TOKEN_IDREF
+	case "IDREFS":
+		return DTD.TOKEN_IDREFS
+	case "ENTITY":
+		return DTD.TOKEN_ENTITY
+	case "ENTITIES":
+		return DTD.TOKEN_ENTITIES
+	case "NMTOKEN":
+		return DTD.TOKEN_NMTOKEN
+	case "NMTOKENS":
+		return DTD.TOKEN_NMTOKENS
+	case "NOTATION":
+		return DTD.ENUM_NOTATION
+	}
+	if strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
+		return DTD.ENUM_NOTATION
+	}
+	return 0
 }
 
 // ParseComment Parse a string and return pointer to DTD.Comment

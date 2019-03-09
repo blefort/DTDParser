@@ -96,10 +96,10 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 // @ref https://www.w3.org/TR/xml11/#sec-entity-decl
 //
 // Entity Declaration
-// [70]   	EntityDecl	   ::=   	GEDecl | PEDecl
-// [71]   	GEDecl	   ::=   	'<!ENTITY' S Name S EntityDef S? '>'
-// [72]   	PEDecl	   ::=   	'<!ENTITY' S '%' S Name S PEDef S? '>'
-// [73]   	EntityDef	   ::=   	EntityValue | (ExternalID NDataDecl?)
+// [70]   	EntityDecl ::=   	GEDecl | PEDecl
+// [71]   	GEDecl     ::=   	'<!ENTITY' S Name S EntityDef S? '>'
+// [72]   	PEDecl     ::=   	'<!ENTITY' S '%' S Name S PEDef S? '>'
+// [73]   	EntityDef  ::=   	EntityValue | (ExternalID NDataDecl?)
 // [74]   	PEDef	   ::=   	EntityValue | ExternalID
 //
 func ParseEntity(s string) *DTD.Entity {
@@ -160,57 +160,68 @@ func isQuoted(s string) bool {
 }
 
 // ParseAttlist Parse a string and return pointer to a DTD.Attlist
-// Declaration Types
-// #REQUIRED
-// <!ATTLIST ElementName AttributeName AttributeType #REQUIRED>
-// #IMPLIED
-// <!ATTLIST ElementName AttributeName AttributeType #IMPLED>
 //
-// #FIXED
-// <!ATTLIST ElementName AttributeName AttributeType #FIXED AttributeValue>
-//
-// Attribute type can't be determined whem parsing because some entities can be part of the content
+// [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
+// [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
 //
 func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	var a DTD.Attlist
 	var s2 string
+	var i int
 
 	s2 = normalizeSpace(s)
 
 	parts := seekWords(s2)
 	l := len(parts)
 
-	for i := 0; i <= l; i++ {
+	if l == 0 {
+		panic("Unable to scan Attlist")
+	}
+
+	a.Name = parts[0]
+
+	for i = 1; i < l; i++ {
+
+		var attr DTD.Attribute
+
 		part := parts[i]
 
-		if i == 0 {
-			a.Name = part
-			continue
-		}
-
 		if strings.HasPrefix(part, "%") {
-			var attr DTD.Attribute
+			log.Warnf("Ref. to an entity found %s", part)
 			attr.Value = part
 			a.Attributes = append(a.Attributes, attr)
 			continue
 		}
 
-		var attr DTD.Attribute
+		if i+2 > l {
+			log.Panic("Number of arguments in attlist does seems correct")
+		}
+
+		log.Warnf("name is = %s", part)
+		log.Tracef("type string is = %s", parts[i+1])
 
 		attr.Name = part
-		nType := seekAttributeType(parts[i+1])
+		attr.Type = seekAttributeType(parts[i+1])
 
-		if nType == 0 {
+		log.Tracef("type is = %d", attr.Type)
+
+		if attr.Type == 0 {
 			log.Fatal("ParseAttlist: Could not identitfy attribute type")
 		}
 
-		attr.Type = nType
-		//attr.Default =
+		if attr.Type == DTD.ENUM_NOTATION {
+			log.Warnf("Notation def is= %s", parts[i+2])
+			log.Warnf("default is = %s", parts[i+3])
+			attr.Value = parts[i+1]
+			attr.Default = parts[i+2]
+			i = i + 3
+		} else {
+			log.Warnf("default is = %s", parts[i+2])
+			attr.Default = parts[i+2]
+			i = i + 2
+		}
 
-		log.Tracef("ParseAttlist: part '%s'", part)
-		log.Tracef("ParseAttlist: ntype '%d'", nType)
-
-		break
+		a.Attributes = append(a.Attributes, attr)
 	}
 
 	return &a
@@ -239,7 +250,7 @@ func seekAttributeType(s string) int {
 		return DTD.ENUM_NOTATION
 	}
 	if strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
-		return DTD.ENUM_NOTATION
+		return DTD.ENUM_ENUM
 	}
 	return 0
 }

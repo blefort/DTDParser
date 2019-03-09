@@ -2,9 +2,7 @@
 <!ATTLIST image height CDATA #REQUIRED>
 <!ATTLIST image width CDATA #REQUIRED>
 <!ATTLIST student_name student_no ID #REQUIRED>
-<!ATTLIST student_name student_no ID #REQUIRED>
 <!ATTLIST student_name tutor_1 IDREF #IMPLIED>
-<!ATTLIST student_name tutor_2 IDREF #IMPLIED>
 <!ATTLIST results image ENTITY #REQUIRED>
 
 <!ATTLIST results images ENTITIES #REQUIRED>

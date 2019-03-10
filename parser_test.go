@@ -90,19 +90,26 @@ func loadAttlistTests(file string) []AttrTestResult {
 	return tests
 }
 
-// TestParseCommentBlock Test parser for result
-func TestParseCommentBlock(t *testing.T) {
-	var tests []CommentTestResult
-
+//  newParser() Instantiate parser and configure it
+func newParser() *DTDParser.Parser {
 	// New parser
 	p := DTDParser.NewDTDParser()
 
 	// Configure parser
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
-	p.Parse("tests/comment.dtd")
 	p.SetOutputPath("tmp")
+	return p
+}
 
+// TestParseCommentBlock Test parser for result
+func TestParseCommentBlock(t *testing.T) {
+	var tests []CommentTestResult
+
+	// New parser
+	p := newParser()
+
+	p.Parse("tests/comment.dtd")
 	tests = loadCommentTests("tests/comment.json")
 
 	if len(p.Collection) != len(tests) {
@@ -126,14 +133,9 @@ func TestParseElementBlock(t *testing.T) {
 	var tests []DTD.Element
 
 	// New parser
-	p := DTDParser.NewDTDParser()
+	p := newParser()
 
-	// Configure parser
-	p.WithComments = true
-	p.IgnoreExtRefIssue = true
 	p.Parse("tests/element.dtd")
-	p.SetOutputPath("tmp")
-
 	tests = loadElementTests("tests/element.json")
 
 	if len(p.Collection) != len(tests) {
@@ -148,7 +150,6 @@ func TestParseElementBlock(t *testing.T) {
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Render", render(p))
-
 	}
 }
 
@@ -157,13 +158,8 @@ func TestParseNotationBlock(t *testing.T) {
 	var tests []DTD.Notation
 
 	// New parser
-	p := DTDParser.NewDTDParser()
-
-	// Configure parser
-	p.WithComments = true
-	p.IgnoreExtRefIssue = true
+	p := newParser()
 	p.Parse("tests/notation.dtd")
-	p.SetOutputPath("tmp")
 
 	tests = loadNotationTests("tests/notation.json")
 
@@ -182,7 +178,6 @@ func TestParseNotationBlock(t *testing.T) {
 		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System))
 		t.Run("Check System", checkBoolValue(parsedBlock.Public, test.Public))
 		t.Run("Render", render(p))
-
 	}
 }
 
@@ -190,13 +185,8 @@ func TestParseEntityBlock(t *testing.T) {
 	var tests []EntityTestResult
 
 	// New parser
-	p := DTDParser.NewDTDParser()
-
-	// Configure parser
-	p.WithComments = true
-	p.IgnoreExtRefIssue = true
+	p := newParser()
 	p.Parse("tests/entity.dtd")
-	p.SetOutputPath("tmp")
 
 	tests = loadEntityTests("tests/entity.json")
 
@@ -214,7 +204,6 @@ func TestParseEntityBlock(t *testing.T) {
 		t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
 		t.Run("Check Url", checkStrValue(parsedBlock.GetUrl(), test.Url))
 		t.Run("Render", render(p))
-
 	}
 }
 
@@ -222,14 +211,9 @@ func TestParseAttlistBlock(t *testing.T) {
 	var tests []AttrTestResult
 
 	// New parser
-	p := DTDParser.NewDTDParser()
+	p := newParser()
 
-	// Configure parser
-	p.WithComments = true
-	p.IgnoreExtRefIssue = true
 	p.Parse("tests/attlist.dtd")
-	p.SetOutputPath("tmp")
-
 	tests = loadAttlistTests("tests/attlist.json")
 
 	if len(p.Collection) != len(tests) {
@@ -265,7 +249,6 @@ func TestParseAttlistBlock(t *testing.T) {
 		}
 		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name))
 		t.Run("Render", render(p))
-
 	}
 }
 

@@ -1,31 +1,4 @@
-<!ATTLIST concept     %global-atts;  class CDATA "- topic/topic concept/concept ">
-
-<!ATTLIST image height CDATA #REQUIRED>
-<!ATTLIST image width CDATA #REQUIRED>
-<!ELEMENT student_name (#PCDATA)>
-<!ATTLIST student_name student_no ID #REQUIRED>
-<!ATTLIST student_name student_no ID #REQUIRED>
-<!ATTLIST student_name tutor_1 IDREF #IMPLIED>
-<!ATTLIST student_name tutor_2 IDREF #IMPLIED>
 <!ELEMENT experiment_a (results)*>
 <!ELEMENT results EMPTY>
-<!ATTLIST results image ENTITY #REQUIRED>
-<!ENTITY a SYSTEM
-    "http://www.university.com/results/experimenta/a.gif">
-<!ELEMENT experiment_a (results)*>
-<!ELEMENT results EMPTY>
-<!ATTLIST results images ENTITIES #REQUIRED>
-<!ENTITY a1 SYSTEM
-    "http://www.university.com/results/experimenta/a1.gif">
-<!ENTITY a2 SYSTEM
-    "http://www.university.com/results/experimenta/a2.gif">
-<!ENTITY a3 SYSTEM
-    "http://www.university.com/results/experimenta/a3.gif">
 <!ELEMENT student_name (#PCDATA)>
-<!ATTLIST student_name student_no NMTOKEN #REQUIRED>
-<!ELEMENT code (#PCDATA)>
-  <!NOTATION vrml PUBLIC "VRML 1.0">
-  <!ATTLIST code lang NOTATION (vrml) #REQUIRED>
-  <!ELEMENT ToDoList (task)*>
-  <!ELEMENT task (#PCDATA)>
-  <!ATTLIST task status (important|normal) #REQUIRED>
+<!ELEMENT student (surname,firstname*,dob?,(origin|sex)?)>

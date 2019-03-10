@@ -2,7 +2,7 @@
 // Use of this source code is governed under MIT License
 // that can be found in the LICENSE file.
 
-// Package DTD Represents main structs of a DTD
+// Package DTD Representss main structs of a DTD
 //
 // Specifications: https://www.w3.org/TR/xml11/
 //
@@ -59,7 +59,7 @@ type IDTDBlock interface {
 	GetUrl() string
 }
 
-// Entity represents a DTD Entity
+// Entity representss a DTD Entity
 type Entity struct {
 	Parameter   bool
 	ExternalDTD bool
@@ -72,13 +72,21 @@ type Entity struct {
 	Src         string
 }
 
-// ExportedEntity represent an exported entity
+// ExportedEntity represents an exported entity
 type ExportedEntity struct {
 	Name  string
 	Value string
+	Src   string
 }
 
-// Attribute represent an attribute
+// Element represents a DTD element
+type Element struct {
+	Name  string
+	Value string
+	Src   string
+}
+
+// Attribute represents an attribute
 type Attribute struct {
 	Name     string
 	Type     int
@@ -89,7 +97,7 @@ type Attribute struct {
 	Fixed    bool
 }
 
-// Attlist represent an attlist
+// Attlist represents an attlist
 type Attlist struct {
 	Name       string
 	Value      string
@@ -97,7 +105,7 @@ type Attlist struct {
 	Attributes []Attribute
 }
 
-// Comment represent a comment
+// Comment represents a comment
 type Comment struct {
 	Value    string
 	Exported bool
@@ -409,6 +417,68 @@ func (a *Attlist) GetExported() bool {
 func IsAttlistType(i interface{}) bool {
 	switch i.(type) {
 	case *Attlist:
+		return true
+	default:
+		return false
+	}
+}
+
+/**
+ * Element
+ */
+
+// Render an Element
+// implements IDTDBlock
+func (e *Element) Render() string {
+	return join("<!ELEMENT", e.Name, " ", e.Value, ">", "\n")
+}
+
+// GetName Get the name
+// implements IDTDBlock
+func (e *Element) GetName() string {
+	return e.Name
+}
+
+// SetExported set the current entity to exported
+// implements IDTDBlock
+func (e *Element) SetExported(v bool) {
+	panic("An element should never be set as exported")
+}
+
+// GetSrc return the source filename where the entity was first found
+// implements IDTDBlock
+func (e *Element) GetSrc() string {
+	return e.Src
+}
+
+// GetValue Get the value
+// implements IDTDBlock
+func (e *Element) GetValue() string {
+	return e.Value
+}
+
+// GetParameter return parameter for entity only
+// implements IDTDBlock
+func (e *Element) GetParameter() bool {
+	panic("Element have no Parameter")
+}
+
+// GetUrl the entity url
+// implements IDTDBlock
+func (e *Element) GetUrl() string {
+	panic("GetUrl not allowed for this block")
+}
+
+// GetExported Unused, tells if the comment was exported
+// implements IDTDBlock
+func (e *Element) GetExported() bool {
+	panic("Element are not exported")
+}
+
+// IsElementType check if the interface is a DTD.Element
+func IsElementType(i interface{}) bool {
+	switch i.(type) {
+	case *Element:
 		return true
 	default:
 		return false

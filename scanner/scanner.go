@@ -67,17 +67,24 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	}
 
 	if nType == DTD.ENTITY {
-		entStr := sc.SeekEntity()
+		entStr := sc.SeekBlock()
 		entity := ParseEntity(entStr)
 		entity.Src = sc.Filepath
 		return entity, nil
 	}
 
 	if nType == DTD.ATTLIST {
-		entStr := sc.SeekEntity()
+		entStr := sc.SeekBlock()
 		attlist := sc.ParseAttlist(entStr)
 		attlist.Src = sc.Filepath
 		return attlist, nil
+	}
+
+	if nType == DTD.ELEMENT {
+		elStr := sc.SeekBlock()
+		element := ParseElement(elStr)
+		element.Src = sc.Filepath
+		return element, nil
 	}
 
 	// this one update the entity struct in the collection
@@ -90,6 +97,28 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	}
 
 	return nil, errors.New("no block found")
+}
+
+// ParseEntity Parse a string and return pointer to a DTD.Element
+// @ref https://www.w3.org/TR/xml11/#elemdecls
+//
+// Element Declaration
+// [45]   	elementdecl	   ::=   	'<!ELEMENT' S Name S contentspec S? '>'	[VC: Unique Element Type Declaration]
+// [46]   	contentspec	   ::=   	'EMPTY' | 'ANY' | Mixed | children
+//
+func ParseElement(s string) *DTD.Element {
+	var e DTD.Element
+	var s2 string
+
+	s2 = normalizeSpace(s)
+	parts := seekWords(s2)
+
+	e.Name = parts[0]
+	parts = parts[1:len(parts)]
+
+	e.Value = strings.Join(parts, " ")
+
+	return &e
 }
 
 // ParseEntity Parse a string and return pointer to a DTD.Entity
@@ -235,7 +264,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	return &attlist
 }
 
-//
+// checkDefault Check if the default value if required, implied or fixed and reste Default property
 func checkDefault(attr *DTD.Attribute) {
 	attr.Required = isRequired(attr.Default)
 	attr.Implied = isImplied(attr.Default)
@@ -374,6 +403,9 @@ func (sc *DTDScanner) seekType() int {
 		if s == "!ENTITY" {
 			return DTD.ENTITY
 		}
+		if s == "!ELEMENT" {
+			return DTD.ELEMENT
+		}
 		if s == "!ATTLIST" {
 			return DTD.ATTLIST
 		}
@@ -383,8 +415,8 @@ func (sc *DTDScanner) seekType() int {
 	return 0
 }
 
-// SeekEntity seek an entity
-func (sc *DTDScanner) SeekEntity() string {
+// SeekBlock seek an entity
+func (sc *DTDScanner) SeekBlock() string {
 	var s string
 
 	for sc.Data.Scan() {

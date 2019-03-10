@@ -56,7 +56,7 @@ func loadJSON(file string, v interface{}) {
 	}
 }
 
-// Load tests
+// loadCommentTests Load comment tests
 func loadCommentTests(file string) []CommentTestResult {
 	// Open file
 	var tests []CommentTestResult
@@ -64,7 +64,7 @@ func loadCommentTests(file string) []CommentTestResult {
 	return tests
 }
 
-// Load tests
+// loadEntityTests Load entity tests
 func loadEntityTests(file string) []EntityTestResult {
 	// Open file
 	var tests []EntityTestResult
@@ -72,7 +72,15 @@ func loadEntityTests(file string) []EntityTestResult {
 	return tests
 }
 
-// Load tests
+// loadElementTests Load element tests
+func loadElementTests(file string) []DTD.Element {
+	// Open file
+	var tests []DTD.Element
+	loadJSON(file, &tests)
+	return tests
+}
+
+// loadAttlistTests Load attribute tests
 func loadAttlistTests(file string) []AttrTestResult {
 	// Open file
 	var tests []AttrTestResult
@@ -80,6 +88,7 @@ func loadAttlistTests(file string) []AttrTestResult {
 	return tests
 }
 
+// TestParseCommentBlock Test parser for result
 func TestParseCommentBlock(t *testing.T) {
 	var tests []CommentTestResult
 
@@ -108,6 +117,37 @@ func TestParseCommentBlock(t *testing.T) {
 				t.Errorf("Received wrong value, '%s' instead of 'comment'", parsedBlock)
 			}
 		})
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
+		t.Run("Render", render(p))
+
+	}
+}
+
+// TestParseCommentBlock Test parser for result
+func TestParseElementBlock(t *testing.T) {
+	var tests []DTD.Element
+
+	// New parser
+	p := DTDParser.NewDTDParser()
+
+	// Configure parser
+	p.WithComments = true
+	p.IgnoreExtRefIssue = true
+	p.Parse("tests/element.dtd")
+	p.SetOutputPath("tmp")
+
+	tests = loadElementTests("tests/element.json")
+
+	if len(p.Collection) != len(tests) {
+		t.Errorf("Number of elements in the collection (%d) differs from number of tests (%d), please update either your DTD test or the corresponding json file", len(p.Collection), len(tests))
+		t.SkipNow()
+	}
+
+	for idx, test := range tests {
+
+		parsedBlock := p.Collection[idx]
+
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Render", render(p))

@@ -7,17 +7,11 @@ The goal of the project is to parse DTD and generate Structs to be used in other
 
 # Roadmap
 
-* [ ] Parse DTD and generate corresponding structs in memory
-    * [X] Comments struct
-    * [X] Entity Struct + exported entity
-    * [ ] Element
-    * [ ] Attlist
-    * [X] External DTD
-* [X] Regenerate DTD
-* [ ] Generate Structs to be used in other programs using Go prepare
-* [ ] Validation
+* [X] Parse DTD and generate corresponding structs in memory - Alpha version
+* [X] Regenerate DTD - Alpha version
+* [ ] Generate Structs to be used in other programs using Go prepare
+* [ ] DTD Validation
    * [X] Missing external DTD
-
 
 # License
 

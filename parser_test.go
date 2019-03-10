@@ -37,7 +37,7 @@ type AttrTestResult struct {
 
 // TestMain Test Initialization
 func TestMain(m *testing.M) {
-	log.SetLevel(log.TraceLevel)
+	//log.SetLevel(log.TraceLevel)
 	os.Exit(m.Run())
 }
 
@@ -93,8 +93,6 @@ func TestParseCommentBlock(t *testing.T) {
 	p.SetOutputPath("tmp")
 
 	tests = loadCommentTests("tests/comment.json")
-	log.Warnf("tests %+v", tests)
-	log.Warnf("collection %+v", p.Collection)
 
 	if len(p.Collection) != len(tests) {
 		t.Errorf("Number of elements in the collection (%d) differs from number of tests (%d), please update either your DTD test or the corresponding json file", len(p.Collection), len(tests))
@@ -130,8 +128,6 @@ func TestParseEntityBlock(t *testing.T) {
 	p.SetOutputPath("tmp")
 
 	tests = loadEntityTests("tests/entity.json")
-	log.Warnf("tests %+v", tests)
-	log.Warnf("collection %+v", p.Collection)
 
 	if len(p.Collection) != len(tests) {
 		t.Errorf("Number of elements in the collection (%d) differs from number of tests (%d), please update either your DTD test or the corresponding json file", len(p.Collection), len(tests))
@@ -169,8 +165,6 @@ func TestParseAttlistBlock(t *testing.T) {
 	p.SetOutputPath("tmp")
 
 	tests = loadAttlistTests("tests/attlist.json")
-	log.Warnf("tests %+v", tests)
-	log.Warnf("collection %+v", p.Collection)
 
 	if len(p.Collection) != len(tests) {
 		t.Errorf("Number of elements in the collection (%d) differs from number of tests (%d), please update either your DTD test or the corresponding json file", len(p.Collection), len(tests))
@@ -179,17 +173,39 @@ func TestParseAttlistBlock(t *testing.T) {
 
 	for idx, test := range tests {
 
-		var parsedBlock *DTD.Attlist = p.Collection[idx].(*DTD.Attlist)
+		AttlistBlock := p.Collection[idx].(*DTD.Attlist)
 
-		t.Run("Check DTD Type", func(t *testing.T) {
-			if !DTD.IsAttlistType(parsedBlock) {
-				t.Errorf("Received wrong value, '%v' instead of Attlist", parsedBlock)
+		log.Tracef("Attlist: test: %#v", test)
+		log.Tracef("Attlist: parsed: %#v", AttlistBlock)
+
+		if len(AttlistBlock.Attributes) == 0 {
+			t.Errorf("Attlist: Not attribute definition found in '%#v'", AttlistBlock)
+		}
+
+		t.Run("Attlist: Check DTD Type", func(t *testing.T) {
+			if !DTD.IsAttlistType(AttlistBlock) {
+				t.Errorf("Attlist: Received wrong value, '%#v' instead of Attlist", AttlistBlock)
 			}
 		})
 
-		t.Run("Check Attributes Count", checkIntValue(len(parsedBlock.Attributes), len(test.Attributes)))
-		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
-		t.Run("Render", render(p))
+		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes)))
+
+		for attrID, attr := range AttlistBlock.Attributes {
+
+			attrTest := test.Attributes[attrID]
+			t.Log("Nexts 2 lines shows #1 expected, #2 found")
+			t.Logf("%#v", attrTest)
+			t.Logf("%#v", attr)
+
+			t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name))
+			t.Run("Attlist:Attribute:Check Type", checkIntValue(attr.Type, attrTest.Type))
+			t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Default, attrTest.Default))
+			t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required))
+			t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied))
+			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed))
+		}
+		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name))
+		//t.Run("Render", render(p))
 
 	}
 }

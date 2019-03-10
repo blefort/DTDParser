@@ -165,42 +165,37 @@ func isQuoted(s string) bool {
 // [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
 //
 func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
-	var a DTD.Attlist
+	var attlist DTD.Attlist
 	var s2 string
 	var i int
 
 	s2 = normalizeSpace(s)
 
 	parts := seekWords(s2)
+	log.Tracef("parts are: %#v", parts)
+
 	l := len(parts)
 
 	if l == 0 {
 		panic("Unable to scan Attlist")
 	}
 
-	a.Name = parts[0]
+	attlist.Name = parts[0]
 
 	for i = 1; i < l; i++ {
 
 		var attr DTD.Attribute
 
-		part := parts[i]
-
-		if strings.HasPrefix(part, "%") {
-			log.Warnf("Ref. to an entity found %s", part)
-			attr.Value = part
-			a.Attributes = append(a.Attributes, attr)
+		// Entity could be used
+		if strings.HasPrefix(parts[i], "%") {
+			log.Tracef("Ref. to an entity found %s", parts[i])
+			attr.Value = parts[i]
+			attlist.Attributes = append(attlist.Attributes, attr)
 			continue
 		}
 
-		if i+2 > l {
-			log.Panic("Number of arguments in attlist does seems correct")
-		}
-
-		log.Warnf("name is = %s", part)
-		log.Tracef("type string is = %s", parts[i+1])
-
-		attr.Name = part
+		// The others parts are processed by group of 2 or 3 depending the type
+		attr.Name = parts[i]
 		attr.Type = seekAttributeType(parts[i+1])
 
 		log.Tracef("type is = %d", attr.Type)
@@ -210,21 +205,80 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 		}
 
 		if attr.Type == DTD.ENUM_NOTATION {
-			log.Warnf("Notation def is= %s", parts[i+2])
-			log.Warnf("default is = %s", parts[i+3])
-			attr.Value = parts[i+1]
-			attr.Default = parts[i+2]
+			attr.Default = trimQuotes(parts[i+3])
+			checkDefault(&attr)
+			attr.Default = trimQuotes(parts[i+2])
+			i = i + 3
+		} else if attr.Type == DTD.ENUM_ENUM {
+			attr.Default = trimQuotes(parts[i+2])
+			checkDefault(&attr)
+			attr.Default = parts[i+1]
+			i = i + 2
+		} else if attr.Type == DTD.TOKEN_NMTOKEN {
+			attr.Default = trimQuotes(parts[i+2])
+			checkDefault(&attr)
 			i = i + 3
 		} else {
-			log.Warnf("default is = %s", parts[i+2])
-			attr.Default = parts[i+2]
+			attr.Default = trimQuotes(parts[i+2])
+			checkDefault(&attr)
 			i = i + 2
 		}
 
-		a.Attributes = append(a.Attributes, attr)
+		if attr.Fixed {
+			attr.Default = trimQuotes(parts[i])
+			i++
+		}
+
+		attlist.Attributes = append(attlist.Attributes, attr)
 	}
 
-	return &a
+	return &attlist
+}
+
+//
+func checkDefault(attr *DTD.Attribute) {
+	attr.Required = isRequired(attr.Default)
+	attr.Implied = isImplied(attr.Default)
+	attr.Fixed = isFixed(attr.Default)
+
+	if attr.Required || attr.Implied || attr.Fixed {
+		attr.Default = ""
+	}
+}
+
+// isRequired parse string and return true if equals to #REQUIRED
+func isRequired(s string) bool {
+	if strings.ToUpper(s) == "#REQUIRED" {
+		return true
+	}
+	return false
+}
+
+// isImplied parse string and return true if equals to #IMPLIED
+func isImplied(s string) bool {
+	if strings.ToUpper(s) == "#IMPLIED" {
+		return true
+	}
+	return false
+}
+
+// isFixed parse string and return true if equals to #FIXED
+func isFixed(s string) bool {
+	if strings.ToUpper(s) == "#FIXED" {
+		return true
+	}
+	return false
+}
+
+// trimQuotes Trim surrounding quotes
+func trimQuotes(s string) string {
+	if len(s) > 0 && s[0] == '"' {
+		s = s[1:]
+	}
+	if len(s) > 0 && s[len(s)-1] == '"' {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 // seekAttributeType Attempt to identify attribute type

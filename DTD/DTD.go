@@ -86,6 +86,7 @@ type Attribute struct {
 	Value    string
 	Implied  bool
 	Required bool
+	Fixed    bool
 }
 
 // Attlist represent an attlist

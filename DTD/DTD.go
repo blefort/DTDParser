@@ -73,16 +73,12 @@ func Translate(i int) string {
 	switch i {
 	case ATTRIBUTE:
 		return "Attribute"
-	case CDATA:
-		return "CDATA"
 	case COMMENT:
 		return "Comment"
 	case ELEMENT:
 		return "Element"
 	case ENTITY:
 		return "Entity"
-	case PCDATA:
-		return "PCDATA"
 	case EXPORTED_ENTITY:
 		return "Exported"
 	case ATTLIST:

@@ -76,6 +76,13 @@ func loadElementTests(file string) []DTD.Element {
 	return tests
 }
 
+// loadElementTests Load element tests
+func loadNotationTests(file string) []DTD.Notation {
+	var tests []DTD.Notation
+	loadJSON(file, &tests)
+	return tests
+}
+
 // loadAttlistTests Load attribute tests
 func loadAttlistTests(file string) []AttrTestResult {
 	var tests []AttrTestResult
@@ -140,6 +147,40 @@ func TestParseElementBlock(t *testing.T) {
 
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
+		t.Run("Render", render(p))
+
+	}
+}
+
+// TestParseCommentBlock Test parser for result
+func TestParseNotationBlock(t *testing.T) {
+	var tests []DTD.Notation
+
+	// New parser
+	p := DTDParser.NewDTDParser()
+
+	// Configure parser
+	p.WithComments = true
+	p.IgnoreExtRefIssue = true
+	p.Parse("tests/notation.dtd")
+	p.SetOutputPath("tmp")
+
+	tests = loadNotationTests("tests/notation.json")
+
+	if len(p.Collection) != len(tests) {
+		t.Errorf("Number of elements in the collection (%d) differs from number of tests (%d), please update either your DTD test or the corresponding json file", len(p.Collection), len(tests))
+		t.SkipNow()
+	}
+
+	for idx, test := range tests {
+
+		parsedBlock := p.Collection[idx].(*DTD.Notation)
+
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
+		t.Run("Check ID", checkStrValue(parsedBlock.ID, test.ID))
+		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System))
+		t.Run("Check System", checkBoolValue(parsedBlock.Public, test.Public))
 		t.Run("Render", render(p))
 
 	}

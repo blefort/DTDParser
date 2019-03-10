@@ -87,6 +87,8 @@ func Translate(i int) string {
 		return "Exported"
 	case ATTLIST:
 		return "Attlist"
+	case NOTATION:
+		return "Notation"
 	default:
 		panic("Unknown type" + string(i) + " requested")
 	}

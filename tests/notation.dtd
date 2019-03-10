@@ -1,0 +1,5 @@
+<!NOTATION gif    PUBLIC "gif viewer">
+<!NOTATION vrml   PUBLIC "VRML 1.0">
+<!NOTATION GIF    SYSTEM "image/gif">
+<!NOTATION jpg    PUBLIC "JPG 1.0" "image/jpeg">
+<!NOTATION gif89a PUBLIC "-//CompuServe//NOTATION Graphics Interchange Format 89a//EN" "gif">

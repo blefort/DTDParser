@@ -87,6 +87,13 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 		return element, nil
 	}
 
+	if nType == DTD.NOTATION {
+		notStr := sc.SeekBlock()
+		notation := ParseNotation(notStr)
+		notation.Src = sc.Filepath
+		return notation, nil
+	}
+
 	// this one update the entity struct in the collection
 	// to see the Exported property to true
 	// That way it could be rendered properly
@@ -121,6 +128,43 @@ func ParseElement(s string) *DTD.Element {
 	return &e
 }
 
+// ParseNotation Parse a string and return pointer to a DTD.Notation
+// @ref https://www.w3.org/TR/xml11/#Notations
+//
+// Element Declaration
+//
+// [82]  NotationDec ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'  [VC: Unique Notation Name]
+// [83]  PublicID    ::= 'PUBLIC' S PubidLiteral
+//
+func ParseNotation(s string) *DTD.Notation {
+	var n DTD.Notation
+	var s2 string
+
+	s2 = normalizeSpace(s)
+	parts := seekWords(s2)
+	l := len(parts)
+
+	n.Name = parts[0]
+
+	if isPublic(parts[1]) {
+		n.Public = true
+	}
+	if isSystem(parts[1]) {
+		n.System = true
+	}
+
+	if l == 3 {
+		n.Value = trimQuotes(parts[2])
+	} else if l == 4 {
+		n.ID = trimQuotes(parts[2])
+		n.Value = trimQuotes(parts[3])
+	} else {
+		panic("Unsupported Notation")
+	}
+
+	return &n
+}
+
 // ParseEntity Parse a string and return pointer to a DTD.Entity
 // @ref https://www.w3.org/TR/xml11/#sec-entity-decl
 //
@@ -150,10 +194,10 @@ func ParseEntity(s string) *DTD.Entity {
 
 		log.Tracef("part is %v", part)
 
-		if part == "PUBLIC" {
+		if isPublic(part) {
 			e.Public = true
 		}
-		if part == "SYSTEM" {
+		if isSystem(part) {
 			e.System = true
 		}
 	}
@@ -299,6 +343,22 @@ func isFixed(s string) bool {
 	return false
 }
 
+// isPublic parse string and return true if equals to PUBLIC
+func isPublic(s string) bool {
+	if strings.ToUpper(s) == "PUBLIC" {
+		return true
+	}
+	return false
+}
+
+// isSystem parse string and return true if equals to SYSTEM
+func isSystem(s string) bool {
+	if strings.ToUpper(s) == "SYSTEM" {
+		return true
+	}
+	return false
+}
+
 // trimQuotes Trim surrounding quotes
 func trimQuotes(s string) string {
 	if len(s) > 0 && s[0] == '"' {
@@ -408,6 +468,9 @@ func (sc *DTDScanner) seekType() int {
 		}
 		if s == "!ATTLIST" {
 			return DTD.ATTLIST
+		}
+		if s == "!NOTATION" {
+			return DTD.NOTATION
 		}
 
 	}

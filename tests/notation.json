@@ -1,0 +1,37 @@
+[
+    {
+      "Name": "gif",
+      "Public": true,
+      "System": false,
+      "Id": "",
+      "Value": "gif viewer"
+    },
+    {
+      "Name": "vrml",
+      "Public": true,
+      "System": false,
+      "Id": "",
+      "Value": "VRML 1.0"
+    },
+    {
+      "Name": "GIF",
+      "Public": false,
+      "System": true,
+      "Id": "",
+      "Value": "image/gif"
+    },
+    {
+      "Name": "jpg",
+      "Public": true,
+      "System": false,
+      "Id": "JPG 1.0",
+      "Value": "image/jpeg"
+    },
+    {
+      "Name": "gif89a",
+      "Public": true,
+      "System": false,
+      "Id": "-//CompuServe//NOTATION Graphics Interchange Format 89a//EN",
+      "Value": "gif"
+    }
+]

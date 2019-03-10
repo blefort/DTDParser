@@ -8,10 +8,12 @@ package DTD
 // Notation reprensents a notation
 type Notation struct {
 	Name   string
-	Sytem  bool
 	Public bool
+	System bool
 	Src    string
 	Url    string
+	Value  string
+	ID     string
 }
 
 // Render an Notation
@@ -41,7 +43,7 @@ func (n *Notation) GetSrc() string {
 // GetValue Get the value
 // implements IDTDBlock
 func (n *Notation) GetValue() string {
-	panic("Notation have no Value")
+	return n.Value
 }
 
 // GetParameter return parameter for entity only

@@ -8,7 +8,6 @@
        "Attributes": [
           {
             "Name": "", 
-            "Type" : null,   
             "Default": "",
             "Value": "%global-atts;",
             "Implied": false,
@@ -17,7 +16,6 @@
           },
           {
             "Name": "class", 
-            "Type" : 9,   
             "Default": "- topic/topic concept/concept ",
             "Value": "",    
             "Implied": false,
@@ -35,7 +33,6 @@
       "Attributes": [
          {
            "Name": "height",
-           "Type" : 9,   
            "Default": "",
            "Value": "",
            "Implied": false,
@@ -53,7 +50,6 @@
       "Attributes": [
          {
             "Name": "width",
-            "Type" : 9,   
             "Default": "",
             "Value": "",
             "Implied": false,
@@ -71,7 +67,6 @@
       "Attributes": [
          {
            "Name": "student_no", 
-           "Type" : 10,   
            "Default": "",
            "Value": "",
            "Implied": false,
@@ -89,7 +84,6 @@
       "Attributes": [
          {
            "Name": "tutor_1", 
-           "Type" : 11,   
            "Default": "",
            "Value": "",
            "Implied": true,
@@ -107,7 +101,6 @@
       "Attributes": [
          {
            "Name": "image",
-           "Type" : 13,   
            "Default": "",
            "Value": "",
            "Implied": false,
@@ -125,7 +118,6 @@
       "Attributes": [
          {
            "Name": "images",
-           "Type" : 14,   
            "Default": "",
            "Value": "",
            "Implied": false,
@@ -143,7 +135,6 @@
       "Attributes": [
          {
            "Name": "student_no",
-           "Type" : 15,   
            "Default": "",
            "Value": "",
            "Implied": false,
@@ -161,7 +152,6 @@
       "Attributes": [
          {
            "Name": "status", 
-           "Type" : 15,   
            "Default": "monthly",
            "Value": "",
            "Implied": false,
@@ -179,7 +169,6 @@
       "Attributes": [
          {
            "Name": "lang",
-           "Type" : 17,   
            "Default": "(vrml)",
            "Value": "",
            "Implied": false,
@@ -197,7 +186,6 @@
       "Attributes": [
          {
            "Name": "status", 
-           "Type" : 18,   
            "Default": "(important|normal)",
            "Value": "",
            "Implied": false,

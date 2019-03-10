@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 
 	log "github.com/Sirupsen/logrus"
@@ -58,7 +57,6 @@ func loadJSON(file string, v interface{}) {
 
 // loadCommentTests Load comment tests
 func loadCommentTests(file string) []CommentTestResult {
-	// Open file
 	var tests []CommentTestResult
 	loadJSON(file, &tests)
 	return tests
@@ -66,7 +64,6 @@ func loadCommentTests(file string) []CommentTestResult {
 
 // loadEntityTests Load entity tests
 func loadEntityTests(file string) []EntityTestResult {
-	// Open file
 	var tests []EntityTestResult
 	loadJSON(file, &tests)
 	return tests
@@ -74,7 +71,6 @@ func loadEntityTests(file string) []EntityTestResult {
 
 // loadElementTests Load element tests
 func loadElementTests(file string) []DTD.Element {
-	// Open file
 	var tests []DTD.Element
 	loadJSON(file, &tests)
 	return tests
@@ -82,7 +78,6 @@ func loadElementTests(file string) []DTD.Element {
 
 // loadAttlistTests Load attribute tests
 func loadAttlistTests(file string) []AttrTestResult {
-	// Open file
 	var tests []AttrTestResult
 	loadJSON(file, &tests)
 	return tests
@@ -112,11 +107,6 @@ func TestParseCommentBlock(t *testing.T) {
 
 		parsedBlock := p.Collection[idx]
 
-		t.Run("Check DTD Type", func(t *testing.T) {
-			if !DTD.IsCommentType(parsedBlock) {
-				t.Errorf("Received wrong value, '%s' instead of 'comment'", parsedBlock)
-			}
-		})
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Render", render(p))
@@ -178,11 +168,6 @@ func TestParseEntityBlock(t *testing.T) {
 
 		parsedBlock := p.Collection[idx]
 
-		t.Run("Check DTD Type", func(t *testing.T) {
-			if !DTD.IsEntityType(parsedBlock) {
-				t.Errorf("Received wrong value, '%s' instead of 'entity'", parsedBlock)
-			}
-		})
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
@@ -222,12 +207,6 @@ func TestParseAttlistBlock(t *testing.T) {
 			t.Errorf("Attlist: Not attribute definition found in '%#v'", AttlistBlock)
 		}
 
-		t.Run("Attlist: Check DTD Type", func(t *testing.T) {
-			if !DTD.IsAttlistType(AttlistBlock) {
-				t.Errorf("Attlist: Received wrong value, '%#v' instead of Attlist", AttlistBlock)
-			}
-		})
-
 		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes)))
 
 		for attrID, attr := range AttlistBlock.Attributes {
@@ -238,54 +217,14 @@ func TestParseAttlistBlock(t *testing.T) {
 			t.Logf("%#v", attr)
 
 			t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name))
-			t.Run("Attlist:Attribute:Check Type", checkIntValue(attr.Type, attrTest.Type))
 			t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Default, attrTest.Default))
 			t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required))
 			t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied))
 			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed))
 		}
 		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name))
-		//t.Run("Render", render(p))
+		t.Run("Render", render(p))
 
-	}
-}
-
-// checkType Check if the block found from the parser has the expected type
-func checkType(parsed DTD.IDTDBlock, expected DTD.IDTDBlock) func(*testing.T) {
-	return func(t *testing.T) {
-		if reflect.TypeOf(parsed) != reflect.TypeOf(expected) {
-			t.Error("Received wrong type")
-		}
-	}
-}
-
-// checkStrValue Check if the block found from the parser has the expected value
-func checkStrValue(a string, b string) func(*testing.T) {
-	return func(t *testing.T) {
-		log.Tracef("Received string value, '%s' to be compared to expected value '%s'", a, b)
-		if a != b {
-			t.Errorf("Received wrong value, '%s' instead of '%s'", a, b)
-		}
-	}
-}
-
-// checkBoolValue Check if the block found from the parser has the expected value
-func checkBoolValue(a bool, b bool) func(*testing.T) {
-	return func(t *testing.T) {
-		log.Tracef("Received bool value, '%t' to be compared to expected value '%t'", a, b)
-		if a != b {
-			t.Errorf("Received wrong bool value, '%t' instead of '%t'", a, b)
-		}
-	}
-}
-
-// checkIntValue Check if the block found from the parser has the expected value
-func checkIntValue(a int, b int) func(*testing.T) {
-	return func(t *testing.T) {
-		log.Tracef("Received int value, '%d' to be compared to expected value '%d'", a, b)
-		if a != b {
-			t.Errorf("Received wrong int value, '%d' instead of '%d'", a, b)
-		}
 	}
 }
 
@@ -326,6 +265,96 @@ func CommentGetUrl() {
 	var c DTD.Comment
 	ret := c.GetUrl()
 	log.Tracef("CommentUrl( return %s", ret)
+}
+
+// TestElementPanic Test func that should never be called
+func TestElementPanic(t *testing.T) {
+	assertPanic(t, ElementExported)
+	assertPanic(t, ElementGetParameter)
+	assertPanic(t, ElementGetUrl)
+}
+
+// ElementExported() Helper to test DTD.Element.GetExported()
+func ElementExported() {
+	var e DTD.Element
+	ret := e.GetExported()
+	log.Tracef("ElementExported( return %t", ret)
+}
+
+// ElementExported() Helper to test DTD.Element.GetParameter()
+func ElementGetParameter() {
+	var e DTD.Element
+	ret := e.GetParameter()
+	log.Tracef("ElementExported( return %t", ret)
+}
+
+// ElementExported() Helper to test DTD.Element.GetUrl()
+func ElementGetUrl() {
+	var e DTD.Element
+	ret := e.GetUrl()
+	log.Tracef("ElementUrl( return %s", ret)
+}
+
+// TestAttlistPanic Test func that should never be called
+func TestAttlistPanic(t *testing.T) {
+	assertPanic(t, AttlistExported)
+	assertPanic(t, AttlistGetParameter)
+	assertPanic(t, AttlistGetUrl)
+}
+
+// AttlistExported() Helper to test DTD.Attlist.GetExported()
+func AttlistExported() {
+	var a DTD.Attlist
+	ret := a.GetExported()
+	log.Tracef("AttlistExported( return %t", ret)
+}
+
+// AttlistExported() Helper to test DTD.Attlist.GetParameter()
+func AttlistGetParameter() {
+	var a DTD.Attlist
+	ret := a.GetParameter()
+	log.Tracef("AttlistExported( return %t", ret)
+}
+
+// AttlistExported() Helper to test DTD.Attlist.GetUrl()
+func AttlistGetUrl() {
+	var a DTD.Attlist
+	ret := a.GetUrl()
+	log.Tracef("AttlistUrl( return %s", ret)
+}
+
+/**
+ * Helpers
+ */
+
+// checkStrValue Check if the block found from the parser has the expected value
+func checkStrValue(a string, b string) func(*testing.T) {
+	return func(t *testing.T) {
+		log.Tracef("Received string value, '%s' to be compared to expected value '%s'", a, b)
+		if a != b {
+			t.Errorf("Received wrong value, '%s' instead of '%s'", a, b)
+		}
+	}
+}
+
+// checkBoolValue Check if the block found from the parser has the expected value
+func checkBoolValue(a bool, b bool) func(*testing.T) {
+	return func(t *testing.T) {
+		log.Tracef("Received bool value, '%t' to be compared to expected value '%t'", a, b)
+		if a != b {
+			t.Errorf("Received wrong bool value, '%t' instead of '%t'", a, b)
+		}
+	}
+}
+
+// checkIntValue Check if the block found from the parser has the expected value
+func checkIntValue(a int, b int) func(*testing.T) {
+	return func(t *testing.T) {
+		log.Tracef("Received int value, '%d' to be compared to expected value '%d'", a, b)
+		if a != b {
+			t.Errorf("Received wrong int value, '%d' instead of '%d'", a, b)
+		}
+	}
 }
 
 // assertPanic Helper to test panic

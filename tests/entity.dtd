@@ -5,9 +5,9 @@
 <!ENTITY   rights "All rights reserved" >
 <!ENTITY   book   "La Peste: Albert Camus,
 &#xA9; 1947 %pub;. &rights;" >
-
 <!ENTITY % hi-d-dec     
   PUBLIC "-//OASIS//ENTITIES DITA 1.2 Highlight Domain//EN" 
          "external.ent"
 >%hi-d-dec;
+<!ENTITY % dtd_chunk SYSTEM "external.ent">
 

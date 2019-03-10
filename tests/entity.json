@@ -47,5 +47,12 @@
        "Value":"\"-//OASIS//ENTITIES DITA 1.2 Highlight Domain//EN\"",
        "Url": "external.ent",
        "Exported": true
+    },
+    {  
+       "Parameter":true,
+       "Name":"dtd_chunk",
+       "Value":"SYSTEM",
+       "Url": "external.ent",
+       "Exported": true
     }
  ]

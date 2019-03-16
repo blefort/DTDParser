@@ -19,58 +19,54 @@ import (
 // main func
 func main() {
 
-	var DTDFullPath string
-	var withComments bool
-	var verbose bool
-	var verboseExtra bool
-	var verboseTrace bool
-	var ignoreExtRefIssue bool
-	var jsonLogFormat bool
-	var DTDoutput string
+	// Input file
+	DTDFullPath := flag.String("DTD", "", "Path to the DTD")
+	DTDOutput := flag.String("output-dtd", "", "Output path to regenetate DTD")
+	stripComment := flag.Bool("srip-comments", false, "Strip comments")
+	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
+	verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
+	logFormat := flag.String("log-format", "default", "Log format, <json> or <default>")
+	ignoreExtRef := flag.Bool("ignore-external-ref", false, "Do not process external references")
 
-	// declare some flags
-	flag.StringVar(&DTDFullPath, "DTD", "", "Path to the DTD")
-	flag.StringVar(&DTDoutput, "o", "", "Output path to regenetate DTD")
-	flag.BoolVar(&withComments, "keep-comments", false, "Keep comments while parsing")
-	flag.BoolVar(&verbose, "v", false, "Verbose")
-	flag.BoolVar(&verboseExtra, "vv", false, "Extra verbose")
-	flag.BoolVar(&verboseTrace, "trace", false, "Trace")
-	flag.BoolVar(&jsonLogFormat, "log-json", false, "Log in json format")
-	flag.BoolVar(&ignoreExtRefIssue, "ignore-ext-ref-issue", false, "Keep comments while parsing")
 	flag.Parse()
 
-	DTDFullPathAbs, err0 := filepath.Abs(DTDFullPath)
+	// configure logger
+	if *logFormat == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	if *verbosity == "v" {
+		log.SetLevel(logrus.InfoLevel)
+	}
+
+	if *verbosity == "vv" {
+		log.SetLevel(logrus.DebugLevel)
+	}
+
+	if *verbosity == "trace" {
+		log.SetLevel(logrus.TraceLevel)
+	}
+
+	// log input
+	log.Infof("Starting DTD parser")
+	log.Infof(" - Option DTD: %s", *DTDFullPath)
+	log.Infof(" - Option Output DTD: %s", *DTDOutput)
+	log.Infof(" - Option Strip Comments: %t", *stripComment)
+	log.Infof(" - Option Verbosity: %s", *verbosity)
+	log.Infof(" - Option ignore external references: %t", *ignoreExtRef)
+	log.Infof(" - Option json log format: %s", *logFormat)
+	log.Infof("")
+
+	// Process DTD
+	if *DTDFullPath == "" {
+		panic("Please provide a DTD")
+	}
+
+	DTDFullPathAbs, err0 := filepath.Abs(*DTDFullPath)
 
 	if err0 != nil {
 		os.Exit(1)
 	}
-
-	// configure logger
-	if jsonLogFormat {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	if verbose {
-		log.SetLevel(logrus.InfoLevel)
-	}
-
-	if verboseExtra {
-		log.SetLevel(logrus.DebugLevel)
-	}
-
-	if verboseTrace {
-		log.SetLevel(logrus.TraceLevel)
-	}
-
-	log.Infof("Starting DTD parser")
-	log.Infof(" - Option DTD: %s", DTDFullPath)
-	log.Infof(" - Option o: %s", DTDoutput)
-	log.Infof(" - Option withComments: %t", withComments)
-	log.Infof(" - Option verbose: %t", (verbose || verboseExtra))
-	log.Infof(" - Option Extra verbose: %t", verboseExtra)
-	log.Infof(" - Option ignoreExtRefIssue: %t", ignoreExtRefIssue)
-	log.Infof(" - Option json log format: %t", jsonLogFormat)
-	log.Infof("")
 
 	if _, err := os.Stat(DTDFullPathAbs); os.IsNotExist(err) {
 		log.Fatal("Provide a valid path to a DTD file")
@@ -80,11 +76,16 @@ func main() {
 	p := DTDParser.NewDTDParser()
 
 	// Configure parser
-	p.WithComments = withComments
-	p.IgnoreExtRefIssue = ignoreExtRefIssue
+	p.WithComments = !*stripComment
+	p.IgnoreExtRefIssue = *ignoreExtRef
 
-	if DTDoutput != "" {
-		outputPathAbs, err3 := filepath.Abs(DTDoutput)
+	if *overwrite {
+		p.Overwrite = true
+	}
+
+	if *DTDOutput != "" {
+
+		outputPathAbs, err3 := filepath.Abs(*DTDOutput)
 
 		if err3 != nil {
 			os.Exit(1)
@@ -93,9 +94,7 @@ func main() {
 		p.SetOutputPath(outputPathAbs)
 	}
 
-	// Parse
+	// Parse & render
 	p.Parse(DTDFullPathAbs)
-
-	log.Info("Rendering DTD")
-	p.Render("")
+	p.RenderDTD("")
 }

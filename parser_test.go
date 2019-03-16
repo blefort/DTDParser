@@ -2,16 +2,20 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"os"
 	"testing"
 
+	"github.com/Sirupsen/logrus"
 	log "github.com/Sirupsen/logrus"
 	"github.com/blefort/DTDParser/DTD"
 	DTDParser "github.com/blefort/DTDParser/parser"
 )
 
 const dirTest = "tests/"
+
+var overwrite bool
 
 // CommentTestResult struct to test comment
 type CommentTestResult struct {
@@ -36,7 +40,28 @@ type AttrTestResult struct {
 
 // TestMain Test Initialization
 func TestMain(m *testing.M) {
-	//log.SetLevel(log.TraceLevel)
+
+	verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
+	overwriteF := flag.Bool("overwrite", false, "Overwrite output file")
+
+	flag.Parse()
+
+	if *verbosity == "v" {
+		log.SetLevel(logrus.InfoLevel)
+	}
+
+	if *verbosity == "vv" {
+		log.SetLevel(logrus.DebugLevel)
+	}
+
+	if *verbosity == "trace" {
+		log.SetLevel(logrus.TraceLevel)
+	}
+
+	if *overwriteF {
+		overwrite = true
+	}
+
 	os.Exit(m.Run())
 }
 
@@ -99,17 +124,27 @@ func newParser() *DTDParser.Parser {
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
 	p.SetOutputPath("tmp")
+
+	if overwrite {
+		p.Overwrite = overwrite
+	}
 	return p
 }
 
 // TestParseCommentBlock Test parser for result
 func TestParseCommentBlock(t *testing.T) {
+	// orginal file
+	testCommentsDTD(t, "tests/comment.dtd")
+	testCommentsDTD(t, "tmp/tests/comment.dtd")
+}
+
+func testCommentsDTD(t *testing.T, path string) {
 	var tests []CommentTestResult
 
 	// New parser
 	p := newParser()
 
-	p.Parse("tests/comment.dtd")
+	p.Parse(path)
 	tests = loadCommentTests("tests/comment.json")
 
 	if len(p.Collection) != len(tests) {
@@ -123,9 +158,9 @@ func TestParseCommentBlock(t *testing.T) {
 
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
-		t.Run("Render", render(p))
-
 	}
+
+	t.Run("Render DTD", render(p))
 }
 
 // TestParseCommentBlock Test parser for result
@@ -149,8 +184,8 @@ func TestParseElementBlock(t *testing.T) {
 
 		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
-		t.Run("Render", render(p))
 	}
+	t.Run("Render DTD", render(p))
 }
 
 // TestParseCommentBlock Test parser for result
@@ -176,9 +211,9 @@ func TestParseNotationBlock(t *testing.T) {
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Check ID", checkStrValue(parsedBlock.ID, test.ID))
 		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System))
-		t.Run("Check System", checkBoolValue(parsedBlock.Public, test.Public))
-		t.Run("Render", render(p))
+		t.Run("Check Public", checkBoolValue(parsedBlock.Public, test.Public))
 	}
+	t.Run("Render DTD", render(p))
 }
 
 func TestParseEntityBlock(t *testing.T) {
@@ -203,8 +238,8 @@ func TestParseEntityBlock(t *testing.T) {
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
 		t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
 		t.Run("Check Url", checkStrValue(parsedBlock.GetUrl(), test.Url))
-		t.Run("Render", render(p))
 	}
+	t.Run("Render DTD", render(p))
 }
 
 func TestParseAttlistBlock(t *testing.T) {
@@ -248,14 +283,14 @@ func TestParseAttlistBlock(t *testing.T) {
 			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed))
 		}
 		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name))
-		t.Run("Render", render(p))
 	}
+	t.Run("Render DTD", render(p))
 }
 
 // Render
 func render(p *DTDParser.Parser) func(*testing.T) {
 	return func(t *testing.T) {
-		p.Render("")
+		p.RenderDTD("")
 	}
 }
 

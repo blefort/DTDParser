@@ -16,11 +16,17 @@ func loadElementTests(file string) []DTD.Element {
 
 // TestParseCommentBlock Test parser for result
 func TestParseElementBlock(t *testing.T) {
-	// orginal file
+	// - parse the DTD test
+	// - compare it to data stored in a json file
+	// - render it in the tmp dir
 	testElementDTD(t, "tests/element.dtd")
+
+	// - load the generated DTD
+	// - compare it to data stored in a json file
 	testElementDTD(t, "tmp/element.dtd")
 }
 
+// testElementDTD main tests for elementDTD
 func testElementDTD(t *testing.T, path string) {
 	var tests []DTD.Element
 

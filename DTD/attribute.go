@@ -43,7 +43,7 @@ func (a *Attribute) Render() string {
 	case TOKEN_NMTOKEN:
 		break
 	default:
-		s += printQuoted(a.Default)
+		s += renderQuoted(a.Default)
 	}
 
 	if a.Implied {
@@ -59,18 +59,10 @@ func (a *Attribute) Render() string {
 	}
 
 	if a.Type == TOKEN_NMTOKEN {
-		s += printQuoted(a.Default)
+		s += renderQuoted(a.Default)
 	}
 
 	return s
-}
-
-// printQuoted print the value with double quote if not empty
-func printQuoted(s string) string {
-	if s == "" {
-		return ""
-	}
-	return "\"" + s + "\""
 }
 
 // SeekAttributeType Attempt to identify attribute type

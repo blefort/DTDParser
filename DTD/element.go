@@ -14,7 +14,7 @@ type Element struct {
 // Render an Element
 // implements IDTDBlock
 func (e *Element) Render() string {
-	return join("<!ELEMENT", e.Name, " ", e.Value, ">", "\n")
+	return join("<!ELEMENT ", e.Name, " ", e.Value, ">", "\n")
 }
 
 // GetName Get the name

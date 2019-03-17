@@ -17,8 +17,11 @@ type Notation struct {
 
 // Render an Notation
 // implements IDTDBlock
+// <!NOTATION name SYSTEM "URI">
+// <!NOTATION name PUBLIC "public_ID">
+// <!NOTATION name PUBLIC "public_ID" "URI">
 func (n *Notation) Render() string {
-	return join("<!NOTATION", n.Name, ">", "\n")
+	return join("<!NOTATION ", n.Name, renderSystem(n.System), renderPublic(n.Public), renderQuoted(n.ID), renderQuoted(n.Url), renderQuoted(n.Value), ">", "\n")
 }
 
 // GetName Get the name

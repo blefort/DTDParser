@@ -15,11 +15,25 @@ func loadNotationTests(file string) []DTD.Notation {
 
 // TestParseCommentBlock Test parser for result
 func TestParseNotationBlock(t *testing.T) {
+	// - parse the DTD test
+	// - compare it to data stored in a json file
+	// - render it in the tmp dir
+	t.Log("Start tests on 'tests/notation.dtd'")
+	testNotationDTD(t, "tests/notation.dtd")
+
+	// - load the generated DTD
+	// - compare it to data stored in a json file
+	t.Log("Start tests on 'tmp/notation.dtd'")
+	testNotationDTD(t, "tmp/notation.dtd")
+}
+
+// testCommentDTD Main func holding tests
+func testNotationDTD(t *testing.T, path string) {
 	var tests []DTD.Notation
 
 	// New parser
 	p := newParser()
-	p.Parse("tests/notation.dtd")
+	p.Parse(path)
 
 	tests = loadNotationTests("tests/notation.json")
 

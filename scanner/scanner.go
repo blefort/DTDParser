@@ -415,30 +415,28 @@ func (sc *DTDScanner) seekType() int {
 
 	for sc.Data.Scan() {
 
-		log.Tracef("Character '%s'", sc.Data.Text())
-
 		s += sc.Data.Text()
-
-		log.Tracef("Word is '%s'", s)
-
-		if sc.isWhitespace() {
-			return 0
-		}
+		log.Tracef("Character '%s', Word is '%s'", sc.Data.Text(), s)
 
 		if s == "!--" {
 			return DTD.COMMENT
 		}
-		if s == "!ENTITY" {
+
+		// detecting the space below is important
+		if s == "!ENTITY " {
 			return DTD.ENTITY
 		}
-		if s == "!ELEMENT" {
+		if s == "!ELEMENT " {
 			return DTD.ELEMENT
 		}
-		if s == "!ATTLIST" {
+		if s == "!ATTLIST " {
 			return DTD.ATTLIST
 		}
-		if s == "!NOTATION" {
+		if s == "!NOTATION " {
 			return DTD.NOTATION
+		}
+		if sc.isWhitespace() {
+			return 0
 		}
 
 	}

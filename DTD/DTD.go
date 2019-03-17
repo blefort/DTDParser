@@ -88,3 +88,27 @@ func Translate(i int) string {
 		panic("Unknown type" + string(i) + " requested")
 	}
 }
+
+// printQuoted print the value with double quote if not empty
+func renderQuoted(s string) string {
+	if s == "" {
+		return ""
+	}
+	return "\"" + s + "\""
+}
+
+// renderSystem Render SYSTEM NOTATION
+func renderSystem(isSystem bool) string {
+	if isSystem {
+		return " SYSTEM "
+	}
+	return ""
+}
+
+// renderSystem Render PUBLIC NOTATION
+func renderPublic(isPublic bool) string {
+	if isPublic {
+		return " PUBLIC "
+	}
+	return ""
+}

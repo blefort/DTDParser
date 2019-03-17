@@ -3,20 +3,14 @@ package main
 import (
 	"testing"
 
+	"github.com/blefort/DTDParser/DTD"
+
 	log "github.com/Sirupsen/logrus"
 )
 
-// EntityTestResult struct to test entity
-type EntityTestResult struct {
-	Name      string
-	Value     string
-	Parameter bool
-	Url       string
-}
-
 // loadEntityTests Load entity tests
-func loadEntityTests(file string) []EntityTestResult {
-	var tests []EntityTestResult
+func loadEntityTests(file string) []DTD.Entity {
+	var tests []DTD.Entity
 	loadJSON(file, &tests)
 	return tests
 }
@@ -36,7 +30,7 @@ func TestParseEntityBlock(t *testing.T) {
 
 // testEntityDTD Main testing func for entity
 func testEntityDTD(t *testing.T, path string) {
-	var tests []EntityTestResult
+	var tests []DTD.Entity
 
 	// New parser
 	p := newParser()
@@ -51,12 +45,15 @@ func testEntityDTD(t *testing.T, path string) {
 
 	for idx, test := range tests {
 
-		parsedBlock := p.Collection[idx]
+		entityBlock := p.Collection[idx].(*DTD.Entity)
 
-		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
-		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
-		t.Run("Check Parameter", checkBoolValue(parsedBlock.GetParameter(), test.Parameter))
-		t.Run("Check Url", checkStrValue(parsedBlock.GetUrl(), test.Url))
+		t.Run("Check name", checkStrValue(entityBlock.Name, test.Name))
+		t.Run("Check value", checkStrValue(entityBlock.Value, test.Value))
+		t.Run("Check Parameter", checkBoolValue(entityBlock.Parameter, test.Parameter))
+		t.Run("Check System", checkBoolValue(entityBlock.System, test.System))
+		t.Run("Check Public", checkBoolValue(entityBlock.Public, test.Public))
+		t.Run("Check External Entity", checkBoolValue(entityBlock.ExternalDTD, test.ExternalDTD))
+		t.Run("Check Url", checkStrValue(entityBlock.Url, test.Url))
 	}
 	t.Run("Render DTD", render(p))
 }

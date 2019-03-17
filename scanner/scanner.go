@@ -197,21 +197,22 @@ func ParseEntity(s string) *DTD.Entity {
 		}
 	}
 
-	if (e.System || e.Public) && e.Parameter {
+	if e.System || e.Public {
 		e.ExternalDTD = true
-	}
-
-	if e.ExternalDTD {
 		e.Url = strings.Trim(parts[len(parts)-1], "\"")
-	}
-
-	if e.ExternalDTD {
-		e.Value = parts[len(parts)-2]
+		assignIfEntityValue(&e, parts[len(parts)-2])
 	} else {
 		e.Value = parts[len(parts)-1]
 	}
 
 	return &e
+}
+
+// assignIfEntityValue test if v is not public system or empty before assigning it
+func assignIfEntityValue(e *DTD.Entity, v string) {
+	if v != "" && !isPublic(v) && !isSystem(v) {
+		e.Value = v
+	}
 }
 
 // seekWords Walk a string and identify every words

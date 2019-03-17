@@ -62,35 +62,30 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	if nType == DTD.COMMENT {
 		commentStr := sc.SeekComment()
 		comment := sc.ParseComment(commentStr)
-		comment.Src = sc.Filepath
 		return comment, nil
 	}
 
 	if nType == DTD.ENTITY {
 		entStr := sc.SeekBlock()
 		entity := ParseEntity(entStr)
-		entity.Src = sc.Filepath
 		return entity, nil
 	}
 
 	if nType == DTD.ATTLIST {
 		entStr := sc.SeekBlock()
 		attlist := sc.ParseAttlist(entStr)
-		attlist.Src = sc.Filepath
 		return attlist, nil
 	}
 
 	if nType == DTD.ELEMENT {
 		elStr := sc.SeekBlock()
 		element := ParseElement(elStr)
-		element.Src = sc.Filepath
 		return element, nil
 	}
 
 	if nType == DTD.NOTATION {
 		notStr := sc.SeekBlock()
 		notation := ParseNotation(notStr)
-		notation.Src = sc.Filepath
 		return notation, nil
 	}
 
@@ -269,7 +264,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 
 		// The others parts are processed by group of 2 or 3 depending the type
 		attr.Name = parts[i]
-		attr.Type = seekAttributeType(parts[i+1])
+		attr.Type = DTD.SeekAttributeType(parts[i+1])
 
 		log.Tracef("type is = %d", attr.Type)
 
@@ -368,34 +363,6 @@ func trimQuotes(s string) string {
 		s = s[:len(s)-1]
 	}
 	return s
-}
-
-// seekAttributeType Attempt to identify attribute type
-func seekAttributeType(s string) int {
-	switch strings.ToUpper(s) {
-	case "CDATA":
-		return DTD.CDATA
-	case "ID":
-		return DTD.TOKEN_ID
-	case "IDREF":
-		return DTD.TOKEN_IDREF
-	case "IDREFS":
-		return DTD.TOKEN_IDREFS
-	case "ENTITY":
-		return DTD.TOKEN_ENTITY
-	case "ENTITIES":
-		return DTD.TOKEN_ENTITIES
-	case "NMTOKEN":
-		return DTD.TOKEN_NMTOKEN
-	case "NMTOKENS":
-		return DTD.TOKEN_NMTOKENS
-	case "NOTATION":
-		return DTD.ENUM_NOTATION
-	}
-	if strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
-		return DTD.ENUM_ENUM
-	}
-	return 0
 }
 
 // ParseComment Parse a string and return pointer to DTD.Comment

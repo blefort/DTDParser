@@ -3,7 +3,6 @@
 // that can be found in the LICENSE file.
 
 // Package DTD Represents main structs of a DTD
-
 package DTD
 
 // Entity representss a DTD Entity
@@ -16,7 +15,6 @@ type Entity struct {
 	System      bool
 	Url         string
 	Exported    bool
-	Src         string
 }
 
 // Render an entity
@@ -28,7 +26,7 @@ func (e Entity) Render() string {
 	var exportedStr string
 	var url string
 
-	if e.ExternalDTD {
+	if e.Parameter {
 		m = " % "
 	} else {
 		m = " "
@@ -52,7 +50,9 @@ func (e Entity) Render() string {
 		url = " \"" + e.Url + "\""
 	}
 
-	return join("<!ENTITY", m, e.Name, "\n", eType, e.Value, url, ">", exportedStr, "\n")
+	el := join("<!ENTITY", m, e.Name, "\n", eType, e.Value, url, ">", exportedStr, "\n")
+
+	return el
 }
 
 // GetName Get the name
@@ -71,12 +71,6 @@ func (e *Entity) SetExported(v bool) {
 // implements IDTDBlock
 func (e *Entity) GetExported() bool {
 	return e.Exported
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (e *Entity) GetSrc() string {
-	return e.Src
 }
 
 // GetValue Get the value

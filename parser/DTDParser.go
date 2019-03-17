@@ -102,7 +102,7 @@ func (p *Parser) Parse(filePath string) {
 	}
 
 	bytes := stat.Size()
-	log.Infof("Parsing %s, %d bytes", p.Filepath, bytes/1024)
+	log.Warnf("Parsing '%s', %d bytes", p.Filepath, bytes)
 
 	*p.filepaths = append(*p.filepaths, p.Filepath)
 
@@ -151,21 +151,24 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 
 	if _, err := os.Stat(path); os.IsNotExist(err) && !p.IgnoreExtRefIssue {
 		log.Fatal(errMsg)
-	} else if _, err := os.Stat(path); os.IsNotExist(err) && p.IgnoreExtRefIssue {
+	}
+
+	if _, err := os.Stat(path); os.IsNotExist(err) && p.IgnoreExtRefIssue {
 		log.Error(errMsg)
 		return
-	} else {
-		log.Infof("*** New parser *** for external entity %s", path)
-		extP := NewDTDParser()
-		extP.outputDirPath = p.outputDirPath
-		extP.filepaths = p.filepaths
-		extP.WithComments = p.WithComments
-		extP.IgnoreExtRefIssue = p.IgnoreExtRefIssue
-		extP.Overwrite = p.Overwrite
-		extP.Parse(path)
-
-		p.parsers = append(p.parsers, *extP)
 	}
+
+	log.Infof("*** New parser *** for external entity %s", path)
+
+	extP := NewDTDParser()
+	extP.outputDirPath = p.outputDirPath
+	extP.filepaths = p.filepaths
+	extP.WithComments = p.WithComments
+	extP.IgnoreExtRefIssue = p.IgnoreExtRefIssue
+	extP.Overwrite = p.Overwrite
+	extP.Parse(path)
+
+	p.parsers = append(p.parsers, *extP)
 
 }
 
@@ -189,43 +192,37 @@ func (p *Parser) SetExportEntity(name string) {
 // RenderDTD Render a collection to a or a set of DTD files
 func (p *Parser) RenderDTD(parentDir string) {
 
-	log.Infof("Render DTD,  %d nested parsers", len(p.parsers))
-
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory
 	// the parentDir will be happened to the output dir
 	log.Tracef("parent Dir is: %s, Filepaths are %+v", parentDir, *p.filepaths)
 
 	if parentDir == "" {
-		parentDir = commonPrefix(*p.filepaths)
+		parentDir = filepath.Dir(commonPrefix(*p.filepaths))
 		log.Tracef("ParentDir from filepaths is: %s", parentDir)
 	}
 
-	// create output files,  check if they exists before and if they should be overwritten
-	for _, filename := range *p.filepaths {
+	finalPath := p.determineFinalDTDPath(parentDir, p.Filepath)
 
-		finalPath := p.determineFinalDTDPath(parentDir, filename)
-
-		if _, err := os.Stat(finalPath); os.IsNotExist(err) {
-			log.Infof("Create DTD: '%s'", finalPath)
-			createOutputFile(finalPath, false)
-			renderHead(finalPath)
-		} else if p.Overwrite {
-			log.Infof("Overwrite DTD: '%s'", finalPath)
-			createOutputFile(finalPath, true)
-			renderHead(finalPath)
-		} else {
-			log.Fatalf("Output DTD: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
-		}
+	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+		log.Infof("Create DTD: '%s'", finalPath)
+		createOutputFile(finalPath, false)
+		renderHead(finalPath)
+	} else if p.Overwrite {
+		log.Infof("Overwrite DTD: '%s'", finalPath)
+		createOutputFile(finalPath, true)
+		renderHead(finalPath)
+	} else {
+		log.Fatalf("Output DTD: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
 	}
+
+	log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
 
 	// export every blocks
 	for _, block := range p.Collection {
-
 		log.Tracef("Exporting block: %#v ", block)
-		finalPath := p.determineFinalDTDPath(parentDir, block.GetSrc())
-		writeToFile(finalPath, block.Render())
-
+		c := block.Render() + "\n"
+		writeToFile(finalPath, c)
 	}
 
 	// process children parsers
@@ -272,7 +269,7 @@ func writeToFile(filepath string, s string) error {
 	}
 	defer f.Close()
 
-	_, err = io.WriteString(f, s+"\n")
+	_, err = io.WriteString(f, s)
 
 	if err != nil {
 		return err
@@ -297,7 +294,7 @@ func commonPrefix(paths []string) string {
 	// Ignore the first path since it's already in c
 	for _, v := range paths[1:] {
 		// Clean up each path before testing it
-		v = filepath.Dir(path.Clean(v))
+		v = path.Clean(v)
 
 		// Find the first non-common byte and truncate c
 		if len(v) < len(c) {

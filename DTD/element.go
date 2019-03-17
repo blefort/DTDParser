@@ -9,7 +9,6 @@ package DTD
 type Element struct {
 	Name  string
 	Value string
-	Src   string
 }
 
 // Render an Element
@@ -28,12 +27,6 @@ func (e *Element) GetName() string {
 // implements IDTDBlock
 func (e *Element) SetExported(v bool) {
 	panic("An element should never be set as exported")
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (e *Element) GetSrc() string {
-	return e.Src
 }
 
 // GetValue Get the value

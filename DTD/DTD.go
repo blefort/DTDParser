@@ -53,7 +53,6 @@ type IDTDBlock interface {
 	Render() string
 	SetExported(v bool)
 	GetExported() bool
-	GetSrc() string
 	GetValue() string
 	GetParameter() bool
 	GetUrl() string

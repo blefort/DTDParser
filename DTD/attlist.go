@@ -9,14 +9,18 @@ package DTD
 type Attlist struct {
 	Name       string
 	Value      string
-	Src        string
 	Attributes []Attribute
 }
 
 // Render an Attlist
 // implements IDTDBlock
 func (a *Attlist) Render() string {
-	return join("<!ATTLIST", a.Name, " ", a.Value, ">", "\n")
+	attributes := ""
+
+	for _, attr := range a.Attributes {
+		attributes += attr.Render()
+	}
+	return join("<!ATTLIST ", a.Name, " ", attributes, ">")
 }
 
 // GetName Get the name
@@ -29,12 +33,6 @@ func (a *Attlist) GetName() string {
 // implements IDTDBlock
 func (a *Attlist) SetExported(v bool) {
 	panic("A comment should never be set as exported")
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (a *Attlist) GetSrc() string {
-	return a.Src
 }
 
 // GetValue Get the value

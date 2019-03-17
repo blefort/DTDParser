@@ -9,7 +9,6 @@ package DTD
 type ExportedEntity struct {
 	Name  string
 	Value string
-	Src   string
 }
 
 // Render an entity
@@ -28,12 +27,6 @@ func (e *ExportedEntity) GetName() string {
 // implements IDTDBlock
 func (e *ExportedEntity) SetExported(v bool) {
 	panic("A comment should never be set as exported")
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (e *ExportedEntity) GetSrc() string {
-	panic("Am exported entity has no src")
 }
 
 // GetValue Get the value

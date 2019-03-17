@@ -9,7 +9,6 @@ package DTD
 type Comment struct {
 	Value    string
 	Exported bool
-	Src      string
 }
 
 // Render an entity
@@ -28,12 +27,6 @@ func (c *Comment) GetName() string {
 // implements IDTDBlock
 func (c *Comment) SetExported(v bool) {
 	panic("A comment should never be set as exported")
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (c *Comment) GetSrc() string {
-	return c.Src
 }
 
 // GetValue Get the value

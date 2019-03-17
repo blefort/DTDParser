@@ -10,7 +10,6 @@ type Notation struct {
 	Name   string
 	Public bool
 	System bool
-	Src    string
 	Url    string
 	Value  string
 	ID     string
@@ -32,12 +31,6 @@ func (n *Notation) GetName() string {
 // implements IDTDBlock
 func (n *Notation) SetExported(v bool) {
 	panic("An Notation should never be set as exported")
-}
-
-// GetSrc return the source filename where the entity was first found
-// implements IDTDBlock
-func (n *Notation) GetSrc() string {
-	return n.Src
 }
 
 // GetValue Get the value

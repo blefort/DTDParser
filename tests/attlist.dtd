@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!ATTLIST concept     %global-atts;  class CDATA "- topic/topic concept/concept ">
 <!ATTLIST image height CDATA #REQUIRED>
 <!ATTLIST image width CDATA #REQUIRED>
@@ -5,12 +6,7 @@
 <!ATTLIST student_name tutor_1 IDREF #IMPLIED>
 <!ATTLIST results image ENTITY #REQUIRED>
 <!ATTLIST results images ENTITIES #REQUIRED>
-
 <!ATTLIST student_name student_no NMTOKEN #REQUIRED>
-
 <!ATTLIST task status NMTOKEN #FIXED "monthly">
-
 <!ATTLIST code lang NOTATION (vrml) #REQUIRED>
-
 <!ATTLIST task status (important|normal) #REQUIRED>
-

@@ -132,6 +132,10 @@ func (p *Parser) Parse(filePath string) {
 		} else {
 			p.Collection = append(p.Collection, DTDBlock)
 		}
+
+		if DTD.IsEntityType(DTDBlock) {
+			p.parseExternalEntity(DTDBlock.(*DTD.Entity))
+		}
 	}
 	log.Infof("%d blocks found in this DTD", len(p.Collection))
 }
@@ -139,7 +143,10 @@ func (p *Parser) Parse(filePath string) {
 // parseExternalEntity Parse an external DTD reference declared in an entity
 func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 
+	log.Infof("Check entity '%s' for external reference", e.Name)
+
 	if !e.ExternalDTD {
+		log.Infof("No external DTD in entity %s", e.Name)
 		return
 	}
 
@@ -154,7 +161,7 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) && p.IgnoreExtRefIssue {
-		log.Error(errMsg)
+		log.Warnf(errMsg)
 		return
 	}
 
@@ -178,12 +185,6 @@ func (p *Parser) SetExportEntity(name string) {
 		if block.GetName() == name {
 			log.Tracef("Marking %s as exported", name)
 			block.SetExported(true)
-
-			if DTD.IsEntityType(block) {
-				p.parseExternalEntity(block.(*DTD.Entity))
-			} else {
-				log.Fatal("A none entity was marked to be exported")
-			}
 			return
 		}
 	}

@@ -8,7 +8,7 @@ package DTD
 import (
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Attribute represents an attribute

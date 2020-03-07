@@ -5,7 +5,7 @@ import (
 
 	"github.com/blefort/DTDParser/DTD"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // loadEntityTests Load entity tests

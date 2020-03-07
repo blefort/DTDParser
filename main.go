@@ -11,9 +11,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
-	log "github.com/Sirupsen/logrus"
 	DTDParser "github.com/blefort/DTDParser/parser"
+	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // main func

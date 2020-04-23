@@ -34,6 +34,7 @@ type Parser struct {
 	parsers           []Parser
 	filepaths         *[]string
 	outputDirPath     string
+	outputStructPath  string
 	Overwrite         bool
 }
 
@@ -49,14 +50,24 @@ func (p *Parser) SetOutputPath(s string) {
 	p.outputDirPath = s
 }
 
+// SetStructPath set the output path to export the DTD a go Struct
+func (p *Parser) SetStructPath(s string) {
+	p.outputStructPath = s
+}
+
 // createOutputFile Create a DTD output file
 func createOutputFile(filepath string, overwrite bool) {
 
-	log.Infof("createOutputFile '%s', truncate will be '%t'", filepath, overwrite)
+	exists := fileExists(filepath)
 
-	if overwrite {
+	if exists && overwrite {
 		removeFile(filepath)
+	} else if exists {
+		log.Infof("createOutputFile '%s' exists and can't be overwritten", filepath)
+		return
 	}
+
+	log.Infof("createOutputFile '%s', truncate will be '%t'", filepath, overwrite)
 
 	f, err := os.Create(filepath)
 
@@ -65,6 +76,15 @@ func createOutputFile(filepath string, overwrite bool) {
 	}
 
 	f.Close()
+}
+
+// fileExists Test if a file exists
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); err == nil {
+		return true
+	} else {
+		return false
+	}
 }
 
 // removeFile Empty content of a file
@@ -108,7 +128,7 @@ func (p *Parser) Parse(filePath string) {
 
 	// use  bufio to read file rune by rune
 	inputdata := string(filebuffer)
-
+	//log.Tracef("File content is: %v", filebuffer)
 	log.Tracef("File content is: %s", inputdata)
 
 	scanner := scanner.NewScanner(filePath, inputdata)
@@ -137,7 +157,7 @@ func (p *Parser) Parse(filePath string) {
 			p.parseExternalEntity(DTDBlock.(*DTD.Entity))
 		}
 	}
-	log.Infof("%d blocks found in this DTD", len(p.Collection))
+	log.Infof("%d blocks found in DTD '%s'", len(p.Collection), p.Filepath)
 }
 
 // parseExternalEntity Parse an external DTD reference declared in an entity
@@ -227,9 +247,40 @@ func (p *Parser) RenderDTD(parentDir string) {
 	}
 
 	// process children parsers
-	for _, parser := range p.parsers {
+	for idx, parser := range p.parsers {
+		log.Warnf("Render DTD's child '%d/%d'", idx+1, len(p.parsers))
 		parser.RenderDTD(parentDir)
 	}
+}
+
+// RenderGoStructs Render a collection to a or a file containing go structs
+func (p *Parser) RenderGoStructs() {
+
+	finalPath := p.outputStructPath + "/structs.go"
+
+	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+		log.Infof("Create Go struct: '%s'", finalPath)
+		createOutputFile(finalPath, false)
+	} else if p.Overwrite {
+		log.Infof("Overwrite: '%s'", finalPath)
+		createOutputFile(finalPath, true)
+	} else {
+		log.Fatalf("Output Go struct: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
+	}
+
+	log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
+
+	// export every blocks
+	// for _, block := range p.Collection {
+	// 	log.Tracef("Exporting block: %#v ", block)
+	// 	c := block.Render() + "\n"
+	// 	writeToFile(finalPath, c)
+	// }
+
+	// // process children parsers
+	// for _, parser := range p.parsers {
+	// 	parser.RenderDTD(parentDir)
+	// }
 }
 
 func (p *Parser) determineFinalDTDPath(parentDir string, i string) string {

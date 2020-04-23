@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/blefort/DTDParser/DTD"
+	log "github.com/sirupsen/logrus"
 )
 
 // AttrTestResult struct to attributes
@@ -27,19 +27,26 @@ func TestParseAttlistBlock(t *testing.T) {
 	// - parse the DTD test
 	// - compare it to data stored in a json file
 	// - render it in the tmp dir
-	testAttlistDTD(t, "tests/attlist.dtd")
+	testAttlistDTD(t, "tests/attlist.dtd", true)
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	testAttlistDTD(t, "tmp/attlist.dtd")
+	testAttlistDTD(t, "tmp/attlist.dtd", false)
 }
 
 // testAttlistDTD main testing func for attlist
-func testAttlistDTD(t *testing.T, path string) {
+func testAttlistDTD(t *testing.T, path string, recreate bool) {
 	var tests []AttrTestResult
+	var dir string
+
+	if recreate {
+		dir = "tmp"
+	} else {
+		dir = "tmp2"
+	}
 
 	// New parser
-	p := newParser()
+	p := newParser(dir)
 
 	p.Parse(path)
 	tests = loadAttlistTests("tests/attlist.json")
@@ -53,29 +60,31 @@ func testAttlistDTD(t *testing.T, path string) {
 
 		AttlistBlock := p.Collection[idx].(*DTD.Attlist)
 
-		log.Tracef("Attlist: test: %#v", test)
-		log.Tracef("Attlist: parsed: %#v", AttlistBlock)
+		//log.Tracef("Attlist: test: %#v", test)
+		//log.Tracef("Attlist: parsed: %#v", AttlistBlock)
 
 		if len(AttlistBlock.Attributes) == 0 {
 			t.Errorf("Attlist: Not attribute definition found in '%#v'", AttlistBlock)
 		}
 
-		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes)))
+		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes), test))
 
 		for attrID, attr := range AttlistBlock.Attributes {
 
 			attrTest := test.Attributes[attrID]
-			t.Log("Nexts 2 lines shows #1 expected, #2 found")
-			t.Logf("%#v", attrTest)
-			t.Logf("%#v", attr)
 
-			t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name))
-			t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Default, attrTest.Default))
-			t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required))
-			t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied))
-			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed))
+			t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name, attr))
+			t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Default, attrTest.Default, attr))
+			t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required, attr))
+			t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied, attr))
+			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr))
+
+			for idx, entity := range attr.Entities {
+				t.Run("Attlist:Entity #"+string(idx), checkStrValue(entity, attrTest.Entities[idx], attr))
+			}
+
 		}
-		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name))
+		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name, test))
 	}
 	t.Run("Render DTD", render(p))
 }

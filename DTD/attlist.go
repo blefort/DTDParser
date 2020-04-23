@@ -10,17 +10,22 @@ type Attlist struct {
 	Name       string
 	Value      string
 	Attributes []Attribute
+	Entities   []string
 }
 
 // Render an Attlist
 // implements IDTDBlock
 func (a *Attlist) Render() string {
 	attributes := ""
+	entities := ""
 
 	for _, attr := range a.Attributes {
 		attributes += attr.Render()
 	}
-	return join("<!ATTLIST ", a.Name, " ", attributes, ">")
+	for _, ent := range a.Entities {
+		entities += ent + " "
+	}
+	return join("<!ATTLIST ", a.Name, " ", entities, attributes, ">")
 }
 
 // GetName Get the name

@@ -7,9 +7,9 @@ import (
 	"os"
 	"testing"
 
+	DTDParser "github.com/blefort/DTDParser/parser"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
-	DTDParser "github.com/blefort/DTDParser/parser"
 )
 
 const dirTest = "tests/"
@@ -59,14 +59,14 @@ func loadJSON(file string, v interface{}) {
 }
 
 //  newParser() Instantiate parser and configure it
-func newParser() *DTDParser.Parser {
+func newParser(dir string) *DTDParser.Parser {
 	// New parser
 	p := DTDParser.NewDTDParser()
 
 	// Configure parser
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
-	p.SetOutputPath("tmp")
+	p.SetOutputPath(dir)
 
 	if overwrite {
 		p.Overwrite = overwrite
@@ -86,31 +86,31 @@ func render(p *DTDParser.Parser) func(*testing.T) {
  */
 
 // checkStrValue Check if the block found from the parser has the expected value
-func checkStrValue(a string, b string) func(*testing.T) {
+func checkStrValue(a string, b string, i interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Tracef("Received string value, '%s' to be compared to expected value '%s'", a, b)
 		if a != b {
-			t.Errorf("Received wrong value, '%s' instead of '%s'", a, b)
+			t.Errorf("Received wrong value, '%s' instead of '%s' - %+v", a, b, i)
 		}
 	}
 }
 
 // checkBoolValue Check if the block found from the parser has the expected value
-func checkBoolValue(a bool, b bool) func(*testing.T) {
+func checkBoolValue(a bool, b bool, i interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Tracef("Received bool value, '%t' to be compared to expected value '%t'", a, b)
 		if a != b {
-			t.Errorf("Received wrong bool value, '%t' instead of '%t'", a, b)
+			t.Errorf("Received wrong bool value, '%t' instead of '%t'- %+v", a, b, i)
 		}
 	}
 }
 
 // checkIntValue Check if the block found from the parser has the expected value
-func checkIntValue(a int, b int) func(*testing.T) {
+func checkIntValue(a int, b int, i interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Tracef("Received int value, '%d' to be compared to expected value '%d'", a, b)
 		if a != b {
-			t.Errorf("Received wrong int value, '%d' instead of '%d'", a, b)
+			t.Errorf("Received wrong int value, '%d' instead of '%d'- %+v", a, b, i)
 		}
 	}
 }

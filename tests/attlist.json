@@ -9,18 +9,22 @@
           {
             "Name": "", 
             "Default": "",
-            "Value": "%global-atts;",
+            "Value": "",
             "Implied": false,
             "Required": false,
-            "Fixed": false
+            "Fixed": false,
+            "Entities": [
+               "%global-atts;"
+            ]
           },
           {
             "Name": "class", 
-            "Default": "- topic/topic concept/concept ",
+            "Default": "\"- topic/topic concept/concept \"",
             "Value": "",    
             "Implied": false,
             "Required": false,
-            "Fixed": false
+            "Fixed": false,
+            "Entities": []
           }
        ]
     },
@@ -37,7 +41,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -54,7 +59,8 @@
             "Value": "",
             "Implied": false,
             "Required": true,
-            "Fixed": false
+            "Fixed": false,
+            "Entities": []
           }
       ]
    },
@@ -71,7 +77,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -88,7 +95,8 @@
            "Value": "",
            "Implied": true,
            "Required": false,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -105,7 +113,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -122,7 +131,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -139,7 +149,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -156,7 +167,8 @@
            "Value": "",
            "Implied": false,
            "Required": false,
-           "Fixed": true
+           "Fixed": true,
+           "Entities": []
          }
       ]
    },
@@ -173,7 +185,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    },
@@ -190,7 +203,8 @@
            "Value": "",
            "Implied": false,
            "Required": true,
-           "Fixed": false
+           "Fixed": false,
+           "Entities": []
          }
       ]
    }

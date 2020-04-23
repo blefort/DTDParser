@@ -73,7 +73,7 @@
       "Parameter":true,
       "Name":"dtd_chunk",
       "Value":"",
-      "Url": "external.ent",
+      "Url": "external2.ent",
       "Exported": true,
       "ExternalDTD": true,
       "Public": false,

@@ -21,7 +21,8 @@ func main() {
 
 	// Input file
 	DTDFullPath := flag.String("DTD", "", "Path to the DTD")
-	DTDOutput := flag.String("output-dtd", "", "Output path to regenetate DTD")
+	DTDOutput := flag.String("output-dtd", "", "Output path to re-generate DTD")
+	GoStructOutput := flag.String("output-struct", "", "Output path to generate go structs")
 	stripComment := flag.Bool("srip-comments", false, "Strip comments")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
 	verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
@@ -94,7 +95,19 @@ func main() {
 		p.SetOutputPath(outputPathAbs)
 	}
 
+	if *GoStructOutput != "" {
+
+		outputPathAbs, err3 := filepath.Abs(*GoStructOutput)
+
+		if err3 != nil {
+			os.Exit(1)
+		}
+
+		p.SetStructPath(outputPathAbs)
+	}
+
 	// Parse & render
 	p.Parse(DTDFullPathAbs)
 	p.RenderDTD("")
+	p.RenderGoStructs()
 }

@@ -10,5 +10,5 @@
   PUBLIC "-//OASIS//ENTITIES DITA 1.2 Highlight Domain//EN" 
          "external.ent"
 >%hi-d-dec;
-<!ENTITY % dtd_chunk SYSTEM "external.ent">
+<!ENTITY % dtd_chunk SYSTEM "external2.ent">
 

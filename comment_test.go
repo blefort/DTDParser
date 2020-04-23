@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/blefort/DTDParser/DTD"
+	log "github.com/sirupsen/logrus"
 )
 
 // CommentTestResult struct to test comment
@@ -27,20 +27,27 @@ func TestParseCommentBlock(t *testing.T) {
 	// - compare it to data stored in a json file
 	// - render it in the tmp dir
 	t.Log("Start tests on 'tests/comment.dtd'")
-	testCommentDTD(t, "tests/comment.dtd")
+	testCommentDTD(t, "tests/comment.dtd", true)
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
 	t.Log("Start tests on 'tmp/comment.dtd'")
-	testCommentDTD(t, "tmp/comment.dtd")
+	testCommentDTD(t, "tmp/comment.dtd", false)
 }
 
 // testCommentDTD Main func holding tests
-func testCommentDTD(t *testing.T, path string) {
+func testCommentDTD(t *testing.T, path string, recreate bool) {
 	var tests []CommentTestResult
+	var dir string
+
+	if recreate {
+		dir = "tmp"
+	} else {
+		dir = "tmp2"
+	}
 
 	// New parser
-	p := newParser()
+	p := newParser(dir)
 
 	p.Parse(path)
 	tests = loadCommentTests("tests/comment.json")
@@ -54,8 +61,8 @@ func testCommentDTD(t *testing.T, path string) {
 
 		parsedBlock := p.Collection[idx]
 
-		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
-		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name, test))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value, test))
 	}
 
 	t.Run("Render DTD", render(p))

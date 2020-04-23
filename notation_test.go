@@ -19,20 +19,29 @@ func TestParseNotationBlock(t *testing.T) {
 	// - compare it to data stored in a json file
 	// - render it in the tmp dir
 	t.Log("Start tests on 'tests/notation.dtd'")
-	testNotationDTD(t, "tests/notation.dtd")
+	testNotationDTD(t, "tests/notation.dtd", true)
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
 	t.Log("Start tests on 'tmp/notation.dtd'")
-	testNotationDTD(t, "tmp/notation.dtd")
+	testNotationDTD(t, "tmp/notation.dtd", false)
 }
 
 // testCommentDTD Main func holding tests
-func testNotationDTD(t *testing.T, path string) {
+func testNotationDTD(t *testing.T, path string, recreate bool) {
 	var tests []DTD.Notation
 
 	// New parser
-	p := newParser()
+	var dir string
+
+	if recreate {
+		dir = "tmp"
+	} else {
+		dir = "tmp2"
+	}
+
+	// New parser
+	p := newParser(dir)
 	p.Parse(path)
 
 	tests = loadNotationTests("tests/notation.json")
@@ -46,11 +55,11 @@ func testNotationDTD(t *testing.T, path string) {
 
 		parsedBlock := p.Collection[idx].(*DTD.Notation)
 
-		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name))
-		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value))
-		t.Run("Check ID", checkStrValue(parsedBlock.ID, test.ID))
-		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System))
-		t.Run("Check Public", checkBoolValue(parsedBlock.Public, test.Public))
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name, test))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value, test))
+		t.Run("Check ID", checkStrValue(parsedBlock.ID, test.ID, test))
+		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System, test))
+		t.Run("Check Public", checkBoolValue(parsedBlock.Public, test.Public, test))
 	}
 	t.Run("Render DTD", render(p))
 }

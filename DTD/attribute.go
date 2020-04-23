@@ -20,11 +20,20 @@ type Attribute struct {
 	Implied  bool
 	Required bool
 	Fixed    bool
+	Entities []string
 }
 
 // Render an Attribute
 func (a *Attribute) Render() string {
 	s := ""
+
+	for _, ent := range a.Entities {
+		s = s + ent + " "
+	}
+
+	if len(s) > 0 {
+		return s
+	}
 
 	if a.Value != "" {
 		return a.Value + " "
@@ -43,7 +52,7 @@ func (a *Attribute) Render() string {
 	case TOKEN_NMTOKEN:
 		break
 	default:
-		s += renderQuoted(a.Default)
+		s += a.Default
 	}
 
 	if a.Implied {
@@ -59,7 +68,7 @@ func (a *Attribute) Render() string {
 	}
 
 	if a.Type == TOKEN_NMTOKEN {
-		s += renderQuoted(a.Default)
+		s += a.Default
 	}
 
 	return s

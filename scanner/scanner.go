@@ -113,7 +113,7 @@ func ParseElement(s string) *DTD.Element {
 	var s2 string
 
 	s2 = normalizeSpace(s)
-	parts := seekWords(s2)
+	parts := SeekWords(s2)
 
 	e.Name = parts[0]
 	parts = parts[1:len(parts)]
@@ -136,7 +136,7 @@ func ParseNotation(s string) *DTD.Notation {
 	var s2 string
 
 	s2 = normalizeSpace(s)
-	parts := seekWords(s2)
+	parts := SeekWords(s2)
 	l := len(parts)
 
 	n.Name = parts[0]
@@ -175,7 +175,7 @@ func ParseEntity(s string) *DTD.Entity {
 	var s2 string
 
 	s2 = normalizeSpace(s)
-	parts := seekWords(s2)
+	parts := SeekWords(s2)
 
 	// parameter
 	if parts[0] == "%" {
@@ -215,11 +215,15 @@ func assignIfEntityValue(e *DTD.Entity, v string) {
 	}
 }
 
-// seekWords Walk a string and identify every words
-func seekWords(s string) []string {
-	regex := regexp.MustCompile(`[^\s"']+|"([^"]*)"|'([^']*)'`)
+// SeekWords Walk a string and identify every words
+func SeekWords(s string) []string {
+
+	r2 := `"(.*?)"|\((.*)\)[\+|\?|\*]?|([^\s]+)`
+
+	regex := regexp.MustCompile(r2)
 	parts := regex.FindAllString(s, -1)
-	log.Tracef("seekWords found %+v", parts)
+
+	log.Tracef("seekWords FindAllString found %#v", parts)
 	return parts
 }
 
@@ -239,8 +243,9 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	var i int
 
 	s2 = normalizeSpace(s)
+	log.Tracef("ParseAttlist received: '%s'", s)
 
-	parts := seekWords(s2)
+	parts := SeekWords(s2)
 	log.Tracef("parts are: %#v", parts)
 
 	l := len(parts)
@@ -250,74 +255,169 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	}
 
 	attlist.Name = parts[0]
+	log.Warnf("Attlist for Element name: '%s'", attlist.Name)
 
 	for i = 1; i < l; i++ {
 
+		// There are 3 to 4 values to test, we don't know
+
 		var attr DTD.Attribute
 
-		// Entity could be used
 		if strings.HasPrefix(parts[i], "%") {
 			log.Tracef("Ref. to an entity found %s", parts[i])
-			attr.Value = parts[i]
+			attr.Entities = append(attr.Entities, parts[i])
 			attlist.Attributes = append(attlist.Attributes, attr)
 			continue
 		}
 
-		// The others parts are processed by group of 2 or 3 depending the type
+		// CASE 2
+		// The others parts are processed by group of 3 to 4 depending the type
+		// addToI will be the number of parts in the attribute definition,
+		// min value is 3 (name, type, value)
+		// this value is minus 1 because the for loop add a +1
+		addToI := 1
+
+		// Name is always the first
 		attr.Name = parts[i]
+		log.Tracef("* Processing attribute: '%s'", attr.Name)
+
+		// Type is always in the second position
 		attr.Type = DTD.SeekAttributeType(parts[i+1])
 
-		log.Tracef("type is = %d", attr.Type)
-
 		if attr.Type == 0 {
-			log.Fatal("ParseAttlist: Could not identitfy attribute type")
+			log.Fatalf("Could not identify attribute type, name: '%s', value: '%s'", attr.Name, parts[i+1])
 		}
+
+		// we have to test for 3 and 4
+		log.Tracef("Type: '%s', DTD code: %d ('%s') (Empty means ENUM ENNUM)", parts[i+1], attr.Type, DTD.AttributeType(attr.Type))
 
 		if attr.Type == DTD.ENUM_NOTATION {
-			attr.Default = trimQuotes(parts[i+3])
-			checkDefault(&attr)
-			attr.Default = trimQuotes(parts[i+2])
-			i = i + 3
+			attr.Default = checkDefaultValue(trimQuotes(parts[i+2]))
+			addToI++
+		} else if attr.Type == DTD.CDATA {
+			addToI += checkCDATADefaultValue(&attr, parts, i, 2)
 		} else if attr.Type == DTD.ENUM_ENUM {
-			attr.Default = trimQuotes(parts[i+2])
-			checkDefault(&attr)
-			attr.Default = parts[i+1]
-			i = i + 2
-		} else if attr.Type == DTD.TOKEN_NMTOKEN {
-			attr.Default = trimQuotes(parts[i+2])
-			checkDefault(&attr)
-			i = i + 3
+			addToI += checkEnumDefaultValue(&attr, parts, i, 1)
 		} else {
-			attr.Default = trimQuotes(parts[i+2])
-			checkDefault(&attr)
-			i = i + 2
+			attr.Default = checkDefaultValue(parts[i+2])
 		}
 
-		if attr.Fixed {
-			attr.Default = trimQuotes(parts[i])
-			i++
-		}
+		addToI += checkDefaultDeclaration(&attr, parts, i, 2)
+		addToI += checkDefaultDeclaration(&attr, parts, i, 3)
 
 		attlist.Attributes = append(attlist.Attributes, attr)
-	}
 
+		i = i + addToI
+	}
+	log.Tracef("%+v", attlist)
 	return &attlist
 }
 
-// checkDefault Check if the default value if required, implied or fixed and reste Default property
-func checkDefault(attr *DTD.Attribute) {
-	attr.Required = isRequired(attr.Default)
-	attr.Implied = isImplied(attr.Default)
-	attr.Fixed = isFixed(attr.Default)
+// checkEnumDefaultValue
+func checkEnumDefaultValue(attr *DTD.Attribute, parts []string, i int, position int) int {
+	idx := i + position
 
-	if attr.Required || attr.Implied || attr.Fixed {
-		attr.Default = ""
+	if idx >= len(parts) {
+		log.Trace("Skipping checkEnumDefaultValue: end of parts reached")
+		return 0
 	}
+
+	attr.Default = checkDefaultValue(parts[idx])
+	log.Tracef("Enum Default Value: '%s'", attr.Default)
+	return 1
+}
+
+// checkCDATADefaultValue
+func checkCDATADefaultValue(attr *DTD.Attribute, parts []string, i int, position int) int {
+	idx := i + position
+
+	if idx >= len(parts) {
+		log.Trace("Skipping checkCDATADefaultValue: end of parts reached")
+		return 0
+	}
+
+	v := parts[idx]
+
+	if isQuoted(v[0:1]) {
+		log.Tracef("CDATA default value is: '%s'", v)
+		attr.Default = v
+		return 1
+	}
+
+	log.Trace("-CDATA default value not found")
+	return 0
+}
+
+// checkCDATADefaultValue
+func checkDefaultValue(v string) string {
+
+	log.Tracef("testing default value'%s'", v)
+
+	if isQuoted(v[0:1]) {
+		log.Tracef("default value is '%s'", v)
+		return v
+	}
+
+	if isRequired(v) {
+		return ""
+	}
+
+	if isImplied(v) {
+		return ""
+	}
+
+	if isFixed(v) {
+		return ""
+	}
+
+	log.Tracef("Default value '%s' found", v)
+	return v
+}
+
+// checkDefault Check if the default value if required, implied or fixed and reste Default property
+func checkDefaultDeclaration(attr *DTD.Attribute, parts []string, i int, position int) int {
+	idx := i + position
+
+	if idx >= len(parts) {
+		log.Trace("Skipping checkDefaultDeclaration: end of parts reached")
+		return 0
+	}
+
+	v := parts[idx]
+
+	if isRequired(v) {
+		log.Tracef("'%s', position: '%d'", v, position)
+		attr.Required = isRequired(v)
+		return 1
+	}
+	if isImplied(v) {
+		log.Tracef("'%s', position: '%d'", v, position)
+		attr.Implied = isImplied(v)
+		return 1
+	}
+	if isFixed(v) {
+		log.Tracef("'%s', position: '%d'", v, position)
+
+		idx2 := idx + 1
+
+		if idx2 >= len(parts) {
+			log.Trace("Skipping checkDefaultDeclaration: end of parts reached")
+			return 1
+		}
+
+		attr.Fixed = isFixed(v)
+		attr.Default = checkDefaultValue(trimQuotes(parts[idx2]))
+		log.Tracef("Default value for FIXED is '%s'", attr.Default)
+		return 2
+	}
+
+	log.Tracef("No default attribute value found in position '%d' (implied, required, fixed)", position)
+	return 0
 }
 
 // isRequired parse string and return true if equals to #REQUIRED
 func isRequired(s string) bool {
-	if strings.ToUpper(s) == "#REQUIRED" {
+	if strings.Trim(strings.ToUpper(s), " ") == "#REQUIRED" {
 		return true
 	}
 	return false
@@ -325,7 +425,7 @@ func isRequired(s string) bool {
 
 // isImplied parse string and return true if equals to #IMPLIED
 func isImplied(s string) bool {
-	if strings.ToUpper(s) == "#IMPLIED" {
+	if strings.Trim(strings.ToUpper(s), " ") == "#IMPLIED" {
 		return true
 	}
 	return false
@@ -333,7 +433,7 @@ func isImplied(s string) bool {
 
 // isFixed parse string and return true if equals to #FIXED
 func isFixed(s string) bool {
-	if strings.ToUpper(s) == "#FIXED" {
+	if strings.Trim(strings.ToUpper(s), " ") == "#FIXED" {
 		return true
 	}
 	return false
@@ -341,7 +441,7 @@ func isFixed(s string) bool {
 
 // isPublic parse string and return true if equals to PUBLIC
 func isPublic(s string) bool {
-	if strings.ToUpper(s) == "PUBLIC" {
+	if strings.Trim(strings.ToUpper(s), " ") == "PUBLIC" {
 		return true
 	}
 	return false
@@ -349,7 +449,7 @@ func isPublic(s string) bool {
 
 // isSystem parse string and return true if equals to SYSTEM
 func isSystem(s string) bool {
-	if strings.ToUpper(s) == "SYSTEM" {
+	if strings.Trim(strings.ToUpper(s), " ") == "SYSTEM" {
 		return true
 	}
 	return false
@@ -464,7 +564,7 @@ func (sc *DTDScanner) SeekBlock() string {
 func normalizeSpace(s string) string {
 	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
 	s1 := regexLineBreak.ReplaceAllString(s, " ")
-	space := regexp.MustCompile(`\s+`)
+	space := regexp.MustCompile(`\s+|\t`)
 	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
 	log.Tracef("Normalized string is '%s'", nm)
 	return nm

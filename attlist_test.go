@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-
+	"fmt"
 	"github.com/blefort/DTDParser/DTD"
 	log "github.com/sirupsen/logrus"
 )
@@ -80,7 +80,7 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr))
 
 			for idx, entity := range attr.Entities {
-				t.Run("Attlist:Entity #"+string(idx), checkStrValue(entity, attrTest.Entities[idx], attr))
+				t.Run("Attlist:Entity #"+fmt.Sprint(idx), checkStrValue(entity, attrTest.Entities[idx], attr))
 			}
 
 		}

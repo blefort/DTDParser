@@ -21,6 +21,11 @@ type DTDScanner struct {
 	Data         *bufio.Scanner
 	WithComments bool
 	Filepath     string
+	CurrentLine  int
+	CurrentChar  int
+	CharCount    int
+	LineCount    int
+	CRLF         bool // 0 linux / 1 dos
 }
 
 // NewScanner returns a new DTD Scanner
@@ -29,12 +34,21 @@ func NewScanner(path string, s string) *DTDScanner {
 	scanner.Data = bufio.NewScanner(strings.NewReader(s))
 	scanner.Data.Split(bufio.ScanRunes)
 	scanner.Filepath = path
+	scanner.CharCount = 0
+	scanner.LineCount = 1
+	scanner.CRLF = false // assume Linux
 	return &scanner
 }
 
 // Next Move to the next character
 func (sc *DTDScanner) Next() bool {
-	return sc.Data.Scan()
+	sc.CharCount++
+	ret := sc.Data.Scan()
+	if sc.isEndOfLine() {
+		sc.LineCount++
+		log.Tracef("Line is %d", sc.LineCount)
+	}
+	return ret
 }
 
 // Scan the string to find the next block
@@ -50,6 +64,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	}
 
 	// determine DTD Block
+	sc.CurrentLine = sc.LineCount
 	nType = sc.seekType()
 
 	log.Tracef("Possible type is %v", nType)
@@ -62,30 +77,36 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	if nType == DTD.COMMENT {
 		commentStr := sc.SeekComment()
 		comment := sc.ParseComment(commentStr)
+		log.Warnf("Commment '%s' found at line '%d", comment.GetName(), sc.CurrentLine)
 		return comment, nil
 	}
 
 	if nType == DTD.ENTITY {
+		log.Warnf("parse entity")
 		entStr := sc.SeekBlock()
 		entity := ParseEntity(entStr)
+		log.Warnf("Entity '%s' found at line '%d", entity.GetName(), sc.CurrentLine)
 		return entity, nil
 	}
 
 	if nType == DTD.ATTLIST {
 		entStr := sc.SeekBlock()
 		attlist := sc.ParseAttlist(entStr)
+		log.Warnf("Attlist '%s' found at line '%d", attlist.GetName(), sc.CurrentLine)
 		return attlist, nil
 	}
 
 	if nType == DTD.ELEMENT {
 		elStr := sc.SeekBlock()
 		element := ParseElement(elStr)
+		log.Warnf("Element '%s' found at line '%d", element.GetName(), sc.CurrentLine)
 		return element, nil
 	}
 
 	if nType == DTD.NOTATION {
 		notStr := sc.SeekBlock()
 		notation := ParseNotation(notStr)
+		log.Warnf("Notation '%s' found at line '%d", notation.GetName(), sc.CurrentLine)
 		return notation, nil
 	}
 
@@ -95,6 +116,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	if nType == DTD.EXPORTED_ENTITY {
 		var exported DTD.ExportedEntity
 		exported.Name = sc.SeekExportedEntity()
+		log.Warnf("Exported Entity '%s' found at line '%d", exported.GetName(), sc.CurrentLine)
 		return &exported, nil
 	}
 
@@ -255,7 +277,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 	}
 
 	attlist.Name = parts[0]
-	log.Warnf("Attlist for Element name: '%s'", attlist.Name)
+	//log.Warnf("Attlist for Element name: '%s' at line %d", attlist.Name, sc.CurrentLine)
 
 	for i = 1; i < l; i++ {
 
@@ -285,7 +307,7 @@ func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
 		attr.Type = DTD.SeekAttributeType(parts[i+1])
 
 		if attr.Type == 0 {
-			log.Fatalf("Could not identify attribute type, name: '%s', value: '%s'", attr.Name, parts[i+1])
+			log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, parts[i+1])
 		}
 
 		// we have to test for 3 and 4
@@ -490,7 +512,7 @@ func (sc *DTDScanner) IsStartChar() bool {
 // %concept-dec means that the entity is exported
 func (sc *DTDScanner) SeekExportedEntity() string {
 	var s string
-	for sc.Data.Scan() {
+	for sc.Next() {
 		if sc.Data.Text() == ";" {
 			return s
 		}
@@ -501,7 +523,20 @@ func (sc *DTDScanner) SeekExportedEntity() string {
 
 // isWhitespace Determine if a string is a whitespace
 func (sc *DTDScanner) isWhitespace() bool {
-	return sc.Data.Text() == " " || sc.Data.Text() == "\t" || sc.Data.Text() == "\n"
+	return sc.Data.Text() == " " || sc.Data.Text() == "\t" || sc.isEndOfLine()
+}
+
+// isEndOfLine Identitfy a carriage return
+func (sc *DTDScanner) isEndOfLine() bool {
+
+	if sc.Data.Text() == "\n" {
+		return true
+	}
+	if sc.Data.Text() == "\r" {
+		sc.CRLF = true
+		return false
+	}
+	return false
 }
 
 // seekType Seek the type of the next DTD block
@@ -513,7 +548,7 @@ func (sc *DTDScanner) seekType() int {
 		return DTD.EXPORTED_ENTITY
 	}
 
-	for sc.Data.Scan() {
+	for sc.Next() {
 
 		s += sc.Data.Text()
 		log.Tracef("Character '%s', Word is '%s'", sc.Data.Text(), s)
@@ -548,7 +583,7 @@ func (sc *DTDScanner) seekType() int {
 func (sc *DTDScanner) SeekBlock() string {
 	var s string
 
-	for sc.Data.Scan() {
+	for sc.Next() {
 
 		log.Tracef("Character '%s'", sc.Data.Text())
 
@@ -575,7 +610,7 @@ func (sc *DTDScanner) SeekComment() string {
 
 	var s string
 
-	for sc.Data.Scan() {
+	for sc.Next() {
 		var last string
 
 		log.Tracef("Character '%s'", sc.Data.Text())

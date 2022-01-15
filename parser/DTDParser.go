@@ -128,8 +128,8 @@ func (p *Parser) Parse(filePath string) {
 
 	// use  bufio to read file rune by rune
 	inputdata := string(filebuffer)
-	//log.Tracef("File content is: %v", filebuffer)
-	log.Tracef("File content is: %s", inputdata)
+
+	//log.Tracef("File content is: %s", inputdata)
 
 	scanner := scanner.NewScanner(filePath, inputdata)
 

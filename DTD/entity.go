@@ -15,6 +15,7 @@ type Entity struct {
 	System      bool
 	Url         string
 	Exported    bool
+	Attributes  []Attribute
 }
 
 // Render an entity

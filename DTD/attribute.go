@@ -35,10 +35,6 @@ func (a *Attribute) Render() string {
 		return s
 	}
 
-	if a.Value != "" {
-		return a.Value + " "
-	}
-
 	s += a.Name + " "
 	s += AttributeType(a.Type) + " "
 
@@ -69,6 +65,10 @@ func (a *Attribute) Render() string {
 
 	if a.Type == TOKEN_NMTOKEN {
 		s += a.Default
+	}
+
+	if a.Value != "" {
+		s += " " + a.Value
 	}
 
 	return s
@@ -126,6 +126,6 @@ func AttributeType(a int) string {
 	case ENUM_ENUM:
 		return ""
 	}
-	log.Warnf("No attribute type conversion possible for '%d'", a)
+	log.Tracef("No attribute type conversion possible for '%d'", a)
 	return ""
 }

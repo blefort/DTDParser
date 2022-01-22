@@ -82,9 +82,8 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	}
 
 	if nType == DTD.ENTITY {
-		log.Warnf("parse entity")
 		entStr := sc.SeekBlock()
-		entity := ParseEntity(entStr)
+		entity := sc.ParseEntity(entStr)
 		log.Warnf("Entity '%s' found at line '%d", entity.GetName(), sc.CurrentLine)
 		return entity, nil
 	}
@@ -192,12 +191,12 @@ func ParseNotation(s string) *DTD.Notation {
 // [73]   	EntityDef  ::=   	EntityValue | (ExternalID NDataDecl?)
 // [74]   	PEDef	   ::=   	EntityValue | ExternalID
 //
-func ParseEntity(s string) *DTD.Entity {
+func (sc *DTDScanner) ParseEntity(s string) *DTD.Entity {
 	var e DTD.Entity
-	var s2 string
+	//var s2 string
 
-	s2 = normalizeSpace(s)
-	parts := SeekWords(s2)
+	//s2 = normalizeSpace(s)
+	parts := SeekWords(s)
 
 	// parameter
 	if parts[0] == "%" {
@@ -209,7 +208,7 @@ func ParseEntity(s string) *DTD.Entity {
 
 	for _, part := range parts {
 
-		log.Tracef("part is %v", part)
+		log.Warnf("part is %v", part)
 
 		if isPublic(part) {
 			e.Public = true
@@ -224,10 +223,102 @@ func ParseEntity(s string) *DTD.Entity {
 		e.Url = strings.Trim(parts[len(parts)-1], "\"")
 		assignIfEntityValue(&e, parts[len(parts)-2])
 	} else {
-		e.Value = parts[len(parts)-1]
+		value := strings.ReplaceAll(parts[len(parts)-1], "\"", "")
+		e.Value = normalizeSpace(value)
+		log.Tracef("ENTITY str: %s", e.Value)
+		sc.parseAttributes(value, &e.Attributes)
 	}
 
 	return &e
+}
+
+// ParseAttlist Parse a string and return pointer to a DTD.Attlist
+//
+// [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
+// [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
+//
+func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
+	var attlist DTD.Attlist
+
+	parts := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	log.Tracef("parts are: %#v", parts)
+
+	attlist.Name = normalizeSpace(parts[0])
+	log.Warnf("Attlist for Element name: '%s' at line %d", attlist.Name, sc.CurrentLine)
+
+	sc.parseAttributes(s, &attlist.Attributes)
+	return &attlist
+}
+
+func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
+
+	var i int
+
+	parts := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	l := len(parts)
+
+	if l == 0 {
+		panic("Unable to scan Attlist")
+	}
+
+	for i = 1; i < l; i++ {
+
+		var attr DTD.Attribute
+
+		if normalizeSpace(parts[i]) == "" {
+			continue
+		}
+
+		*attributes = append(*attributes, attr)
+
+		attrParts := SeekWords(parts[i])
+
+		if strings.HasPrefix(attrParts[0], "%") {
+			attr.Value = attrParts[0]
+			log.Warnf("- Ref. to an entity found: %s", attr.Render())
+			continue
+		}
+
+		// CASE 2
+		// The others parts are processed by group of 3 to 4 depending the type
+		// addToI will be the number of parts in the attribute definition,
+		// min value is 3 (name, type, value)
+		// this value is minus 1 because the for loop add a +1
+		//addToI := 1
+
+		// Name is always the first
+		attr.Name = attrParts[0]
+		log.Tracef("Processing attribute: '%s'", attr.Name)
+
+		// Type is always in the second position
+		attr.Type = DTD.SeekAttributeType(attrParts[1])
+
+		if attr.Type == 0 {
+			log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, attrParts[1])
+		}
+
+		// we have to test for 3 and 4
+		log.Tracef("Type: '%s', DTD code: %d ('%s') (Empty means ENUM ENNUM)", attrParts[1], attr.Type, DTD.AttributeType(attr.Type))
+
+		// check default declation
+		checkDefaultDeclaration(&attr, attrParts)
+
+		if attr.Type == DTD.ENUM_NOTATION {
+			attr.Default = checkDefaultValue(trimQuotes(attrParts[len(attrParts)-1]))
+		} else if attr.Type == DTD.CDATA {
+			attr.Value = checkDefaultValue(attrParts[len(attrParts)-1])
+		}
+		// } else if attr.Type == DTD.ENUM_ENUM {
+		// 	addToI += checkEnumDefaultValue(&attr, parts, i, 1)
+		// } else {
+		// 	attr.Default = checkDefaultValue(parts[i+2])
+		// }
+
+		// attlist.Attributes = append(attlist.Attributes, attr)
+
+		// i = i + addToI
+		log.Warnf("- Attribute: %s", attr.Render())
+	}
 }
 
 // assignIfEntityValue test if v is not public system or empty before assigning it
@@ -254,120 +345,11 @@ func isQuoted(s string) bool {
 	return s == "\"" || s == "'"
 }
 
-// ParseAttlist Parse a string and return pointer to a DTD.Attlist
-//
-// [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
-// [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
-//
-func (sc *DTDScanner) ParseAttlist(s string) *DTD.Attlist {
-	var attlist DTD.Attlist
-	var s2 string
-	var i int
-
-	s2 = normalizeSpace(s)
-	log.Tracef("ParseAttlist received: '%s'", s)
-
-	parts := SeekWords(s2)
-	log.Tracef("parts are: %#v", parts)
-
-	l := len(parts)
-
-	if l == 0 {
-		panic("Unable to scan Attlist")
-	}
-
-	attlist.Name = parts[0]
-	//log.Warnf("Attlist for Element name: '%s' at line %d", attlist.Name, sc.CurrentLine)
-
-	for i = 1; i < l; i++ {
-
-		// There are 3 to 4 values to test, we don't know
-
-		var attr DTD.Attribute
-
-		if strings.HasPrefix(parts[i], "%") {
-			log.Tracef("Ref. to an entity found %s", parts[i])
-			attr.Entities = append(attr.Entities, parts[i])
-			attlist.Attributes = append(attlist.Attributes, attr)
-			continue
-		}
-
-		// CASE 2
-		// The others parts are processed by group of 3 to 4 depending the type
-		// addToI will be the number of parts in the attribute definition,
-		// min value is 3 (name, type, value)
-		// this value is minus 1 because the for loop add a +1
-		addToI := 1
-
-		// Name is always the first
-		attr.Name = parts[i]
-		log.Tracef("* Processing attribute: '%s'", attr.Name)
-
-		// Type is always in the second position
-		attr.Type = DTD.SeekAttributeType(parts[i+1])
-
-		if attr.Type == 0 {
-			log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, parts[i+1])
-		}
-
-		// we have to test for 3 and 4
-		log.Tracef("Type: '%s', DTD code: %d ('%s') (Empty means ENUM ENNUM)", parts[i+1], attr.Type, DTD.AttributeType(attr.Type))
-
-		if attr.Type == DTD.ENUM_NOTATION {
-			attr.Default = checkDefaultValue(trimQuotes(parts[i+2]))
-			addToI++
-		} else if attr.Type == DTD.CDATA {
-			addToI += checkCDATADefaultValue(&attr, parts, i, 2)
-		} else if attr.Type == DTD.ENUM_ENUM {
-			addToI += checkEnumDefaultValue(&attr, parts, i, 1)
-		} else {
-			attr.Default = checkDefaultValue(parts[i+2])
-		}
-
-		addToI += checkDefaultDeclaration(&attr, parts, i, 2)
-		addToI += checkDefaultDeclaration(&attr, parts, i, 3)
-
-		attlist.Attributes = append(attlist.Attributes, attr)
-
-		i = i + addToI
-	}
-	log.Tracef("%+v", attlist)
-	return &attlist
-}
-
 // checkEnumDefaultValue
-func checkEnumDefaultValue(attr *DTD.Attribute, parts []string, i int, position int) int {
-	idx := i + position
+func checkEnumDefaultValue(attr *DTD.Attribute, parts []string) {
 
-	if idx >= len(parts) {
-		log.Trace("Skipping checkEnumDefaultValue: end of parts reached")
-		return 0
-	}
-
-	attr.Default = checkDefaultValue(parts[idx])
+	attr.Default = checkDefaultValue(parts[0])
 	log.Tracef("Enum Default Value: '%s'", attr.Default)
-	return 1
-}
-
-// checkCDATADefaultValue
-func checkCDATADefaultValue(attr *DTD.Attribute, parts []string, i int, position int) int {
-	idx := i + position
-
-	if idx >= len(parts) {
-		log.Trace("Skipping checkCDATADefaultValue: end of parts reached")
-		return 0
-	}
-
-	v := parts[idx]
-
-	if isQuoted(v[0:1]) {
-		log.Tracef("CDATA default value is: '%s'", v)
-		attr.Default = v
-		return 1
-	}
-
-	log.Trace("-CDATA default value not found")
-	return 0
 }
 
 // checkCDATADefaultValue
@@ -397,44 +379,23 @@ func checkDefaultValue(v string) string {
 }
 
 // checkDefault Check if the default value if required, implied or fixed and reste Default property
-func checkDefaultDeclaration(attr *DTD.Attribute, parts []string, i int, position int) int {
-	idx := i + position
+func checkDefaultDeclaration(attr *DTD.Attribute, parts []string) {
 
-	if idx >= len(parts) {
-		log.Trace("Skipping checkDefaultDeclaration: end of parts reached")
-		return 0
-	}
+	for _, v := range parts {
 
-	v := parts[idx]
-
-	if isRequired(v) {
-		log.Tracef("'%s', position: '%d'", v, position)
-		attr.Required = isRequired(v)
-		return 1
-	}
-	if isImplied(v) {
-		log.Tracef("'%s', position: '%d'", v, position)
-		attr.Implied = isImplied(v)
-		return 1
-	}
-	if isFixed(v) {
-		log.Tracef("'%s', position: '%d'", v, position)
-
-		idx2 := idx + 1
-
-		if idx2 >= len(parts) {
-			log.Trace("Skipping checkDefaultDeclaration: end of parts reached")
-			return 1
+		if isRequired(v) {
+			log.Trace("REQUIRED detected")
+			attr.Required = isRequired(v)
 		}
-
-		attr.Fixed = isFixed(v)
-		attr.Default = checkDefaultValue(trimQuotes(parts[idx2]))
-		log.Tracef("Default value for FIXED is '%s'", attr.Default)
-		return 2
+		if isImplied(v) {
+			log.Trace("IMPLIED detected")
+			attr.Implied = isImplied(v)
+		}
+		if isFixed(v) {
+			log.Trace("FIXED detected")
+			attr.Fixed = isFixed(v)
+		}
 	}
-
-	log.Tracef("No default attribute value found in position '%d' (implied, required, fixed)", position)
-	return 0
 }
 
 // isRequired parse string and return true if equals to #REQUIRED
@@ -585,11 +546,18 @@ func (sc *DTDScanner) SeekBlock() string {
 
 	for sc.Next() {
 
-		log.Tracef("Character '%s'", sc.Data.Text())
+		c := sc.Data.Text()
+
+		if c == "\r" || c == "\n" {
+			log.Trace("Character '\\n' (new line)")
+		} else {
+			log.Tracef("Character '%s'", c)
+		}
 
 		if sc.Data.Text() == ">" {
 			break
 		}
+
 		s += sc.Data.Text()
 	}
 	return s

@@ -138,7 +138,7 @@ func (p *Parser) Parse(filePath string) {
 	// the scanner should send DTD blocks that the parser
 	// will put in a collection.
 
-	for scanner.Next() {
+	for scanner.NextBlock() {
 
 		DTDBlock, err := scanner.Scan()
 
@@ -156,6 +156,7 @@ func (p *Parser) Parse(filePath string) {
 		if DTD.IsEntityType(DTDBlock) {
 			p.parseExternalEntity(DTDBlock.(*DTD.Entity))
 		}
+
 	}
 	log.Infof("%d blocks found in DTD '%s'", len(p.Collection), p.Filepath)
 }
@@ -163,7 +164,7 @@ func (p *Parser) Parse(filePath string) {
 // parseExternalEntity Parse an external DTD reference declared in an entity
 func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 
-	log.Infof("Check entity '%s' for external reference", e.Name)
+	log.Tracef("Check entity '%s' for external reference", e.Name)
 
 	if !e.ExternalDTD {
 		log.Infof("No external DTD in entity %s", e.Name)

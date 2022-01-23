@@ -220,7 +220,7 @@ func (sc *DTDScanner) ParseEntity(p *parsedBlock) *DTD.Entity {
 	// 	log.Tracef("ENTITY str: %s", e.Value)
 	// 	sc.parseAttributes(value, &e.Attributes)
 	// }
-	sc.parseAttributes(e.Value, &e.Attributes)
+	sc.parseAttributes(p.value, &e.Attributes)
 
 	return &e
 }
@@ -264,6 +264,10 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 		*attributes = append(*attributes, attr)
 
 		attrParts := SeekWords(parts[i])
+
+		if len(attrParts) < 3 {
+			continue
+		}
 
 		if strings.HasPrefix(attrParts[0], "%") {
 			attr.Value = attrParts[0]

@@ -167,7 +167,7 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 	log.Tracef("Check entity '%s' for external reference", e.Name)
 
 	if !e.ExternalDTD {
-		log.Infof("No external DTD in entity %s", e.Name)
+		log.Tracef("No external DTD in entity %s", e.Name)
 		return
 	}
 

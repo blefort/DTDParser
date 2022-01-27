@@ -99,19 +99,20 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	if p.blockType == "ENTITY" {
 		entity := sc.ParseEntity(p)
 		log.Infof("ENTITY '%s' (line %d)", entity.GetName(), sc.CurrentLine)
+		sc.logOutputAttributes(&entity.Attributes)
 		return entity, nil
 	}
 
 	if p.blockType == "ATTLIST" {
 		attlist := sc.ParseAttlist(p)
 		log.Infof("ATTLIST '%s' (line %d)", attlist.GetName(), sc.CurrentLine)
+		sc.logOutputAttributes(&attlist.Attributes)
 		return attlist, nil
 	}
 
 	if p.blockType == "ELEMENT" {
 		element := sc.ParseElement(p)
-		log.Infof("ELEMENT '%s' (line %d)", element.GetName(), sc.CurrentLine)
-		log.Tracef("ELEMENT 'value: '%s'", element.GetName(), sc.CurrentLine, p.value)
+		log.Infof("ELEMENT '%s' (line %d), value: '%s'", element.GetName(), sc.CurrentLine, element.Value)
 		return element, nil
 	}
 
@@ -232,13 +233,7 @@ func (sc *DTDScanner) ParseEntity(p *parsedBlock) *DTD.Entity {
 //
 func (sc *DTDScanner) ParseAttlist(p *parsedBlock) *DTD.Attlist {
 	var attlist DTD.Attlist
-
-	//parts := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
-	//log.Tracef("parts are: %#v", parts)
-
 	attlist.Name = p.name
-	log.Warnf("Attlist for Element name: '%s' at line %d", attlist.Name, sc.CurrentLine)
-
 	sc.parseAttributes(p.value, &attlist.Attributes)
 	return &attlist
 }
@@ -249,11 +244,13 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 	parts := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
 	l := len(parts)
 
+	//log.Warnf("parse Attr: parts %v", parts)
+
 	if l == 0 {
 		panic("Unable to scan Attlist")
 	}
 
-	for i = 1; i < l; i++ {
+	for i = 0; i < l; i++ {
 
 		var attr DTD.Attribute
 
@@ -261,17 +258,21 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 			continue
 		}
 
-		*attributes = append(*attributes, attr)
-
 		attrParts := SeekWords(parts[i])
 
-		if len(attrParts) < 3 {
-			continue
-		}
+		// for partsI, attrPart := range attrParts {
+		// 	log.Warnf("->attributes part %d: %v", partsI, attrPart)
+		// }
 
 		if strings.HasPrefix(attrParts[0], "%") {
 			attr.Value = attrParts[0]
-			log.Warnf("- Ref. to an entity found: %s", attr.Render())
+			log.Tracef("- Ref. to an entity found: %s", attr.Render())
+			*attributes = append(*attributes, attr)
+			continue
+		}
+
+		// next part requires at least 3 values
+		if len(attrParts) < 3 {
 			continue
 		}
 
@@ -303,16 +304,22 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 			attr.Default = checkDefaultValue(trimQuotes(attrParts[len(attrParts)-1]))
 		} else if attr.Type == DTD.CDATA {
 			attr.Value = checkDefaultValue(attrParts[len(attrParts)-1])
+		} else if attr.Type == DTD.ENUM_ENUM {
+			attr.Value = checkDefaultValue(attrParts[1])
+		} else {
+			attr.Value = checkDefaultValue(attrParts[1])
 		}
-		// } else if attr.Type == DTD.ENUM_ENUM {
-		// 	addToI += checkEnumDefaultValue(&attr, parts, i, 1)
-		// } else {
-		// 	attr.Default = checkDefaultValue(parts[i+2])
-		// }
-
+		*attributes = append(*attributes, attr)
 		// attlist.Attributes = append(attlist.Attributes, attr)
 
 		// i = i + addToI
+
+	}
+}
+
+// output attributes in the log
+func (sc *DTDScanner) logOutputAttributes(attributes *[]DTD.Attribute) {
+	for _, attr := range *attributes {
 		log.Warnf("- Attribute: %s", attr.Render())
 	}
 }

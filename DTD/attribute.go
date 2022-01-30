@@ -20,16 +20,12 @@ type Attribute struct {
 	Implied  bool
 	Required bool
 	Fixed    bool
-	Entities []string
+	IsEntity bool
 }
 
 // Render an Attribute
 func (a *Attribute) Render() string {
 	s := ""
-
-	for _, ent := range a.Entities {
-		s = s + ent + " "
-	}
 
 	if len(s) > 0 {
 		return s
@@ -37,38 +33,18 @@ func (a *Attribute) Render() string {
 
 	s += a.Name + " "
 	s += AttributeType(a.Type) + " "
-
-	switch a.Type {
-	case ENUM_NOTATION:
-		s += a.Default
-		break
-	case ENUM_ENUM:
-		s += a.Default
-		break
-	case TOKEN_NMTOKEN:
-		break
-	default:
-		s += a.Default
-	}
+	s += a.Value + " "
 
 	if a.Implied {
-		s += " #IMPLIED "
+		s += "#IMPLIED"
 	}
 
 	if a.Required {
-		s += " #REQUIRED "
+		s += "#REQUIRED"
 	}
 
 	if a.Fixed {
-		s += " #FIXED "
-	}
-
-	if a.Type == TOKEN_NMTOKEN {
-		s += a.Default
-	}
-
-	if a.Value != "" {
-		s += " " + a.Value
+		s += "#FIXED"
 	}
 
 	return s

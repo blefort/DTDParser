@@ -2,7 +2,7 @@ package main
 
 import (
 	"testing"
-	"fmt"
+
 	"github.com/blefort/DTDParser/DTD"
 	log "github.com/sirupsen/logrus"
 )
@@ -58,6 +58,8 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 
 	for idx, test := range tests {
 
+		var ret bool
+
 		AttlistBlock := p.Collection[idx].(*DTD.Attlist)
 
 		//log.Tracef("Attlist: test: %#v", test)
@@ -73,14 +75,38 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 
 			attrTest := test.Attributes[attrID]
 
-			t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name, attr))
-			t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Default, attrTest.Default, attr))
-			t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required, attr))
-			t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied, attr))
-			t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr))
+			ret = t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name, attr))
 
-			for idx, entity := range attr.Entities {
-				t.Run("Attlist:Entity #"+fmt.Sprint(idx), checkStrValue(entity, attrTest.Entities[idx], attr))
+			if !ret {
+				t.FailNow()
+			}
+
+			ret = ret && t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Value, attrTest.Value, attr))
+
+			if !ret {
+				t.FailNow()
+			}
+
+			ret = ret && t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required, attr))
+
+			if !ret {
+				t.FailNow()
+			}
+
+			ret = ret && t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied, attr))
+
+			if !ret {
+				t.FailNow()
+			}
+
+			ret = ret && t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr))
+
+			if !ret {
+				t.FailNow()
+			}
+
+			if !ret {
+				t.FailNow()
 			}
 
 		}

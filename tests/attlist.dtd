@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!ATTLIST concept %global-atts;  
+                  class CDATA "- topic/topic concept/concept "
+>
 <!ATTLIST concept     %global-atts;  class CDATA "- topic/topic concept/concept ">
 <!ATTLIST image height CDATA #REQUIRED>
 <!ATTLIST image width CDATA #REQUIRED>

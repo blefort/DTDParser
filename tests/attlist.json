@@ -9,18 +9,16 @@
           {
             "Name": "", 
             "Default": "",
-            "Value": "",
+            "Value": "%global-atts;",
             "Implied": false,
             "Required": false,
             "Fixed": false,
-            "Entities": [
-               "%global-atts;"
-            ]
+            "Entities": []
           },
           {
             "Name": "class", 
-            "Default": "\"- topic/topic concept/concept \"",
-            "Value": "",    
+            "Default": "",
+            "Value": "\"- topic/topic concept/concept \"",    
             "Implied": false,
             "Required": false,
             "Fixed": false,
@@ -28,6 +26,34 @@
           }
        ]
     },
+    {  
+      "Parameter":false,
+      "Name":"concept",
+      "Value": "",
+      "Url": "",
+      "Exported": false,
+      "Attributes": [
+         {
+           "Name": "", 
+           "Default": "",
+           "Value": "%global-atts;",
+           "Implied": false,
+           "Required": false,
+           "Fixed": false,
+           "Entities": [
+           ]
+         },
+         {
+           "Name": "class", 
+           "Default": "",
+           "Value": "\"- topic/topic concept/concept \"",    
+           "Implied": false,
+           "Required": false,
+           "Fixed": false,
+           "Entities": []
+         }
+      ]
+   },
     {  
       "Parameter":false,
       "Name":"image",
@@ -163,8 +189,8 @@
       "Attributes": [
          {
            "Name": "status", 
-           "Default": "monthly",
-           "Value": "",
+           "Default": "",
+           "Value": "\"monthly\"",
            "Implied": false,
            "Required": false,
            "Fixed": true,
@@ -181,8 +207,8 @@
       "Attributes": [
          {
            "Name": "lang",
-           "Default": "(vrml)",
-           "Value": "",
+           "Default": "",
+           "Value": "(vrml)",
            "Implied": false,
            "Required": true,
            "Fixed": false,
@@ -199,8 +225,8 @@
       "Attributes": [
          {
            "Name": "status", 
-           "Default": "(important|normal)",
-           "Value": "",
+           "Default": "",
+           "Value": "(important|normal)",
            "Implied": false,
            "Required": true,
            "Fixed": false,

@@ -17,15 +17,12 @@ type Attlist struct {
 // implements IDTDBlock
 func (a *Attlist) Render() string {
 	attributes := ""
-	entities := ""
 
 	for _, attr := range a.Attributes {
 		attributes += attr.Render()
 	}
-	for _, ent := range a.Entities {
-		entities += ent + " "
-	}
-	return join("<!ATTLIST ", a.Name, " ", entities, attributes, ">")
+
+	return join("<!ATTLIST ", a.Name, " ", attributes, ">")
 }
 
 // GetName Get the name

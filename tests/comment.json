@@ -1,4 +1,4 @@
-[  
+[ 
    {  
       "Parameter":false,
       "Name":"comment",
@@ -9,14 +9,21 @@
    {  
       "Parameter":false,
       "Name":"comment",
-      "Value":" Comment test ",
+      "Value":"Comment test 2",
       "Url": "",
       "Exported": false
    },
    {  
       "Parameter":false,
       "Name":"comment",
-      "Value":" Comment with <markup>Foo</markup> ",
+      "Value":"Comment test 3 with <markup>Foo</markup>",
+      "Url": "",
+      "Exported": false
+   },
+   {  
+      "Parameter":false,
+      "Name":"comment",
+      "Value":"Comment test 4 with \n  <markup>Foo</markup>",
       "Url": "",
       "Exported": false
    }

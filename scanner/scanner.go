@@ -16,6 +16,12 @@ import (
 	"github.com/blefort/DTDParser/DTD"
 )
 
+const (
+	BLOCK_COMMENT = 0
+	BLOCK_XML     = 1
+	BLOCK_DTD     = 2
+)
+
 // DTDScanner represents a DTD scanner
 type DTDScanner struct {
 	Data         *bufio.Scanner
@@ -82,23 +88,26 @@ func (sc *DTDScanner) Previous() bool {
 // Scan the string to find the next block
 func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
-	s := sc.seekUntilNextBlock()
+	s, declaration := sc.seekUntilNextBlock()
+	log.Warnf("Declaration is %d", declaration)
 
-	//log.Warnf("Block line: '%s'", s)
-
-	p, err := SeekBlockParts(s)
+	p, err := sc.extractDeclaration(s, declaration)
 
 	if err != nil {
 		return nil, errors.New("Unidentified block")
 	}
 
-	// 	// create struct depending DTD type
-	// 	if nType == DTD.COMMENT {
-	// 		commentStr := sc.SeekComment()
-	// 		comment := sc.ParseComment(commentStr)
-	// 		log.Warnf("Commment '%s' found at line '%d", comment.GetName(), sc.CurrentLine)
-	// 		return comment, nil
-	// 	}
+	if p.blockType == "XMLDECL" {
+		var xmldecl DTD.XMLDecl
+		log.Warn("XMLDECL found at line '%d")
+		return &xmldecl, nil
+	}
+
+	if p.blockType == "COMMENT" {
+		comment := sc.ParseComment(p)
+		log.Warnf("Commment '%s' found at line '%d", comment.GetName(), sc.CurrentLine)
+		return comment, nil
+	}
 
 	if p.blockType == "ENTITY" {
 		entity := sc.ParseEntity(p)
@@ -130,6 +139,15 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
 }
 
+// ParseComment Parse a string and return pointer to DTD.Comment
+func (sc *DTDScanner) ParseComment(p *parsedBlock) *DTD.Comment {
+	var c DTD.Comment
+	//s = strings.TrimRight(s, "-")
+	log.Warnf("comment stre receive '%s' and '%s'", p.name, p.value)
+	c.Value = p.value
+	return &c
+}
+
 // ParseEntity Parse a string and return pointer to a DTD.Element
 // @ref https://www.w3.org/TR/xml11/#elemdecls
 //
@@ -154,29 +172,26 @@ func (sc *DTDScanner) ParseElement(p *parsedBlock) *DTD.Element {
 //
 func (sc *DTDScanner) ParseNotation(p *parsedBlock) *DTD.Notation {
 	var n DTD.Notation
-	// var s2 string
 
-	// s2 = normalizeSpace(s)
-	// parts := SeekWords(s2)
-	// l := len(parts)
+	parts := SeekWords(p.value)
+	//l := len(parts)
+	log.Warnf("%v", parts)
 
-	n.Name = p.name
+	n.Name = normalizeSpace(p.name)
 
-	// if isPublic(parts[1]) {
-	// 	n.Public = true
-	// }
-	// if isSystem(parts[1]) {
-	// 	n.System = true
-	// }
+	if isPublic(parts[0]) {
+		n.Public = true
+		n.ID = parts[1]
+		if len(parts) >= 3 {
+			n.Value = parts[2]
+		}
 
-	// if l == 3 {
-	// 	n.Value = trimQuotes(parts[2])
-	// } else if l == 4 {
-	// 	n.ID = trimQuotes(parts[2])
-	// 	n.Value = trimQuotes(parts[3])
-	// } else {
-	// 	panic("Unsupported Notation")
-	// }
+	}
+	if isSystem(parts[0]) {
+		n.System = true
+		n.Value = parts[1]
+		n.Url = parts[1]
+	}
 
 	return &n
 }
@@ -193,17 +208,49 @@ func (sc *DTDScanner) ParseNotation(p *parsedBlock) *DTD.Notation {
 //
 func (sc *DTDScanner) ParseEntity(p *parsedBlock) *DTD.Entity {
 	var e DTD.Entity
-	// //var s2 string
-
-	// //s2 = normalizeSpace(s)
-	// parts := SeekWords(s)
 	e.Name = p.name
-	// // parameter
+
+	// parameter
 	if p.entity == "%" {
 		e.Parameter = true
 	}
 
-	e.Value = p.value
+	parts := SeekWords(p.value)
+	l := len(parts)
+
+	log.Warnf("parts %v", parts)
+
+	log.Warnf("l: %d", l)
+
+	if l == 1 {
+		e.Value = normalizeSpace(parts[0])
+		e.IsInternal = true
+		e.IsExternal = false
+		log.Warnf("value is %s", e.Value)
+	}
+
+	if l > 1 {
+		if isPublic(parts[0]) {
+			e.Public = true
+		} else {
+			e.Public = false
+		}
+
+		if isSystem(parts[0]) {
+			e.System = true
+		} else {
+			e.System = false
+		}
+	}
+
+	if e.System {
+		e.Url = normalizeSpace(parts[1])
+	}
+
+	if e.Public {
+		e.Value = normalizeSpace(parts[1])
+		e.Url = normalizeSpace(parts[2])
+	}
 
 	return &e
 }
@@ -373,7 +420,7 @@ func assignIfEntityValue(e *DTD.Entity, v string) {
 // SeekWords Walk a string and identify every words
 func SeekWords(s string) []string {
 
-	r2 := `"(.*?)"|\((.*)\)[\+|\?|\*]?|([^\s]+)`
+	r2 := `"([^"]+)"|\((.*)\)[\+|\?|\*]?|([^\s]+)`
 
 	regex := regexp.MustCompile(r2)
 	parts := regex.FindAllString(s, -1)
@@ -382,19 +429,59 @@ func SeekWords(s string) []string {
 	return parts
 }
 
-// SeekWords Walk a string and identify every words
+// extractDeclaration call the rigt sekk method depending the declaration
+func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBlock, error) {
+
+	if declaration == BLOCK_XML {
+		return SeekXMLParts(s)
+	}
+
+	//log.Warnf("Block line: '%s'", s)
+	if declaration == BLOCK_COMMENT {
+		return SeekCommentParts(s)
+	}
+
+	return SeekBlockParts(s)
+}
+
+//SeekXMLParts extract Comment information from string using a Regex
+func SeekXMLParts(s string) (*parsedBlock, error) {
+	var p parsedBlock
+	p.blockType = "XMLDECL"
+	p.value = s
+	return &p, nil
+}
+
+// SeekCommentParts extract Comment information from string using a Regex
+func SeekCommentParts(s string) (*parsedBlock, error) {
+
+	var p parsedBlock
+	var r string
+
+	r = `<!--([\s\S\n]*?)-->`
+	regex := regexp.MustCompile(r)
+	parts := regex.FindAllStringSubmatch(s, -1)
+
+	p.value = strings.TrimSpace(parts[0][1])
+	p.blockType = "COMMENT"
+
+	log.Warnf("SeekCommentPart, parsed: , name: [%s], type: [%s], entity: [%s], value: [%s], s was [%s]", p.name, p.blockType, p.entity, p.value, s)
+
+	return &p, nil
+}
+
+// SeekBlockParts extract DTD information from string using a Regex
 func SeekBlockParts(s string) (*parsedBlock, error) {
 
 	var p parsedBlock
+	var r string
 
-	r2 := `<\!(ENTITY|ELEMENT|ATTLIST|COMMENT|NOTATION)\s*(\%)?\s*(\S+)?\s*([^>]+)?>\s*(%[^>\s]+)?`
+	log.Warnf("SeekBlockParts received %s", s)
 
-	regex := regexp.MustCompile(r2)
+	r = `<\!(ENTITY|ELEMENT|ATTLIST|COMMENT|NOTATION)\s*(\%)?\s*(\S+)?\s*([^>]+)?>\s*(%[^>\s]+)?`
+
+	regex := regexp.MustCompile(r)
 	parts := regex.FindAllStringSubmatch(s, -1)
-
-	if len(parts) == 0 {
-		return nil, errors.New("Could not find any DTD block in " + s)
-	}
 
 	p.fullString = parts[0][0]
 	p.blockType = parts[0][1]
@@ -518,14 +605,6 @@ func trimQuotes(s string) string {
 	return s
 }
 
-// ParseComment Parse a string and return pointer to DTD.Comment
-func (sc *DTDScanner) ParseComment(s string) *DTD.Comment {
-	var c DTD.Comment
-	s = strings.TrimRight(s, "-")
-	c.Value = s
-	return &c
-}
-
 // IsStartChar Determine if a character is the beginning of a DTD block
 func (sc *DTDScanner) IsStartChar() bool {
 	ret := sc.Data.Text() == "<"
@@ -570,17 +649,34 @@ func (sc *DTDScanner) isEndOfLine() bool {
 }
 
 // seekUntilNextBlock return string until next block is found
-func (sc *DTDScanner) seekUntilNextBlock() string {
+func (sc *DTDScanner) seekUntilNextBlock() (string, int) {
 
 	var s string
+	isComment := false
+	isXmlDecl := false
 
 	sc.CurrentLine = sc.LineCount
 	s += sc.Data.Text()
 
 	for sc.next() {
 
-		if sc.IsStartChar() && sc.init {
-			return s
+		empty := normalizeSpace(s)
+
+		if sc.IsStartChar() && sc.init && !isComment && !isXmlDecl && empty != " " {
+			log.Warnf("DTD block '%s'", s)
+			return s, BLOCK_DTD
+		}
+
+		if isComment && s[len(s)-3:] == "-->" {
+			log.Warnf("Comment block %s", s)
+			sc.init = false
+			return s, BLOCK_COMMENT
+		}
+
+		if isXmlDecl && s[len(s)-2:] == "?>" {
+			log.Warnf("XML block %s", s)
+			sc.init = false
+			return s, BLOCK_XML
 		}
 
 		if sc.IsStartChar() && !sc.init {
@@ -588,11 +684,30 @@ func (sc *DTDScanner) seekUntilNextBlock() string {
 		}
 
 		s += sc.Data.Text()
+
+		if normalizeSpace(s) == "<!--" {
+			log.Trace("Comment is detected\n")
+			isComment = true
+		}
+
+		if normalizeSpace(s) == "<?xml" {
+			log.Trace("XML is detected\n")
+			isXmlDecl = true
+		}
+
 		log.Tracef("seekUntilNextBlock: Character '%s', Word is '%s'", sc.Data.Text(), s)
 
 	}
 
-	return s
+	if isComment {
+		return s, BLOCK_COMMENT
+	}
+
+	if isXmlDecl {
+		return s, BLOCK_XML
+	}
+
+	return s, BLOCK_DTD
 
 }
 
@@ -648,27 +763,4 @@ func normalizeSpace(s string) string {
 	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
 	log.Tracef("Normalized string is '%s'", nm)
 	return nm
-}
-
-// SeekComment Seek a comment
-func (sc *DTDScanner) SeekComment() string {
-
-	var s string
-
-	for sc.next() {
-		var last string
-
-		log.Tracef("Character '%s'", sc.Data.Text())
-
-		// last 2 character of a string
-		if len(s) > 2 {
-			last = s[len(s)-2:]
-		}
-
-		if sc.Data.Text() == ">" && last == "--" {
-			break
-		}
-		s += sc.Data.Text()
-	}
-	return s
 }

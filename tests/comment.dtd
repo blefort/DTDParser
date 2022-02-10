@@ -1,4 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--Comment test-->
-<!-- Comment test -->
-<!-- Comment with <markup>Foo</markup> -->
+<!-- Comment test 2 -->
+<!-- Comment test 3 with <markup>Foo</markup> -->
+<!-- 
+Comment test 4 with 
+  <markup>Foo</markup>
+ -->

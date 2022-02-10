@@ -9,6 +9,8 @@ package DTD
 type Entity struct {
 	Parameter   bool
 	ExternalDTD bool
+	IsExternal  bool
+	IsInternal  bool
 	Name        string
 	Value       string
 	Public      bool

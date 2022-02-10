@@ -3,35 +3,35 @@
       "Name": "gif",
       "Public": true,
       "System": false,
-      "Id": "",
-      "Value": "gif viewer"
+      "Id": "\"gif viewer\"",
+      "Value": ""
     },
     {
       "Name": "vrml",
       "Public": true,
       "System": false,
-      "Id": "",
-      "Value": "VRML 1.0"
+      "Id": "\"VRML 1.0\"",
+      "Value": ""
     },
     {
       "Name": "GIF",
       "Public": false,
       "System": true,
       "Id": "",
-      "Value": "image/gif"
+      "Value": "\"image/gif\""
     },
     {
       "Name": "jpg",
       "Public": true,
       "System": false,
-      "Id": "JPG 1.0",
-      "Value": "image/jpeg"
+      "Id": "\"JPG 1.0\"",
+      "Value": "\"image/jpeg\""
     },
     {
       "Name": "gif89a",
       "Public": true,
       "System": false,
-      "Id": "-//CompuServe//NOTATION Graphics Interchange Format 89a//EN",
-      "Value": "gif"
+      "Id": "\"-//CompuServe//NOTATION Graphics Interchange Format 89a//EN\"",
+      "Value": "\"gif\""
     }
 ]

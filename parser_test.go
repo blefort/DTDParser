@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	DTDParser "github.com/blefort/DTDParser/parser"
@@ -90,7 +91,9 @@ func checkStrValue(a string, b string, i interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Tracef("Received string value, '%s' to be compared to expected value '%s'", a, b)
 		if a != b {
-			t.Errorf("Received wrong value, '%s' instead of '%s' - %+v", a, b, i)
+			ac := strings.ReplaceAll(a, "\n", "\\n")
+			bc := strings.ReplaceAll(b, "\n", "\\n")
+			t.Errorf("Received wrong value, '%s' instead of '%s' - %+v", ac, bc, i)
 		}
 	}
 }

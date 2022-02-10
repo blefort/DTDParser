@@ -31,8 +31,8 @@ func TestParseCommentBlock(t *testing.T) {
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	t.Log("Start tests on 'tmp/comment.dtd'")
-	testCommentDTD(t, "tmp/comment.dtd", false)
+	//	t.Log("Start tests on 'tmp/comment.dtd'")
+	//	testCommentDTD(t, "tmp/comment.dtd", false)
 }
 
 // testCommentDTD Main func holding tests

@@ -14,7 +14,7 @@ type Comment struct {
 // Render an entity
 // implements IDTDBlock
 func (c *Comment) Render() string {
-	return "<!--" + c.Value + "-->"
+	return "<!-- " + c.Value + " -->"
 }
 
 // GetName Get the name

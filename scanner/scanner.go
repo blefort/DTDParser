@@ -88,7 +88,9 @@ func (sc *DTDScanner) Previous() bool {
 // Scan the string to find the next block
 func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
+	log.Warn("Seeking for next block")
 	s, declaration := sc.seekUntilNextBlock()
+
 	log.Warnf("Declaration is %d", declaration)
 
 	p, err := sc.extractDeclaration(s, declaration)
@@ -105,7 +107,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
 	if p.blockType == "COMMENT" {
 		comment := sc.ParseComment(p)
-		log.Warnf("Commment '%s' found at line '%d", comment.GetName(), sc.CurrentLine)
+		log.Warnf("Commment '%s' found at line '%d'", comment.GetValue(), sc.CurrentLine)
 		return comment, nil
 	}
 
@@ -439,6 +441,10 @@ func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBloc
 	//log.Warnf("Block line: '%s'", s)
 	if declaration == BLOCK_COMMENT {
 		return SeekCommentParts(s)
+	}
+
+	if normalizeSpace(s) == "" {
+		return nil, errors.New("End of DTD")
 	}
 
 	return SeekBlockParts(s)

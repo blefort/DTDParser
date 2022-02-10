@@ -10,7 +10,6 @@ package DTDParser
 // https://blog.gopheracademy.com/advent-2014/parsers-lexers/
 //
 import (
-	"encoding/xml"
 	"io"
 	"io/ioutil"
 	"os"
@@ -229,11 +228,9 @@ func (p *Parser) RenderDTD(parentDir string) {
 	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
 		log.Infof("Create DTD: '%s'", finalPath)
 		createOutputFile(finalPath, false)
-		renderHead(finalPath)
 	} else if p.Overwrite {
 		log.Infof("Overwrite DTD: '%s'", finalPath)
 		createOutputFile(finalPath, true)
-		renderHead(finalPath)
 	} else {
 		log.Fatalf("Output DTD: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
 	}
@@ -362,9 +359,4 @@ func commonPrefix(paths []string) string {
 	}
 
 	return string(c)
-}
-
-// renderHead Render the head of the DTD
-func renderHead(filepath string) {
-	writeToFile(filepath, xml.Header)
 }

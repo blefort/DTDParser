@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	"github.com/blefort/DTDParser/DTD"
 )
@@ -34,6 +34,7 @@ type DTDScanner struct {
 	CRLF         bool // 0 linux / 1 dos
 	init         bool
 	scanResult   bool
+	Log          *zap.SugaredLogger
 }
 
 type parsedBlock struct {
@@ -45,7 +46,7 @@ type parsedBlock struct {
 }
 
 // NewScanner returns a new DTD Scanner
-func NewScanner(path string, s string) *DTDScanner {
+func NewScanner(path string, s string, log *zap.SugaredLogger) *DTDScanner {
 	var scanner DTDScanner
 	scanner.Data = bufio.NewScanner(strings.NewReader(s))
 	scanner.Data.Split(bufio.ScanRunes)
@@ -55,6 +56,7 @@ func NewScanner(path string, s string) *DTDScanner {
 	scanner.CRLF = false // assume Linux
 	scanner.init = false
 	scanner.scanResult = true
+	scanner.Log = log
 	return &scanner
 }
 
@@ -69,7 +71,7 @@ func (sc *DTDScanner) next() bool {
 	sc.scanResult = sc.Data.Scan()
 	if sc.isEndOfLine() {
 		sc.LineCount++
-		log.Tracef("Line is %d", sc.LineCount)
+		sc.Log.Debugf("Line is %d", sc.LineCount)
 	}
 	return sc.scanResult
 }
@@ -80,7 +82,7 @@ func (sc *DTDScanner) Previous() bool {
 	ret := sc.Data.Scan()
 	if sc.isEndOfLine() {
 		sc.LineCount++
-		log.Tracef("Line is %d", sc.LineCount)
+		sc.Log.Debugf("Line is %d", sc.LineCount)
 	}
 	return ret
 }
@@ -88,10 +90,10 @@ func (sc *DTDScanner) Previous() bool {
 // Scan the string to find the next block
 func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
-	log.Warn("Seeking for next block")
+	sc.Log.Debug("Seeking for next block")
 	s, declaration := sc.seekUntilNextBlock()
 
-	log.Warnf("Declaration is %d", declaration)
+	sc.Log.Debugf("Declaration is %d", declaration)
 
 	p, err := sc.extractDeclaration(s, declaration)
 
@@ -101,39 +103,39 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
 	if p.blockType == "XMLDECL" {
 		var xmldecl DTD.XMLDecl
-		log.Warn("XMLDECL found at line '%d")
+		sc.Log.Debug("XMLDECL found at line '%d")
 		return &xmldecl, nil
 	}
 
 	if p.blockType == "COMMENT" {
 		comment := sc.ParseComment(p)
-		log.Warnf("Commment '%s' found at line '%d'", comment.GetValue(), sc.CurrentLine)
+		sc.Log.Infof("Commment found at line '%d'", sc.CurrentLine)
 		return comment, nil
 	}
 
 	if p.blockType == "ENTITY" {
 		entity := sc.ParseEntity(p)
-		log.Infof("ENTITY '%s' (line %d)", entity.GetName(), sc.CurrentLine)
+		sc.Log.Infof("ENTITY '%s' (line %d)", entity.GetName(), sc.CurrentLine)
 		sc.logOutputAttributes(&entity.Attributes)
 		return entity, nil
 	}
 
 	if p.blockType == "ATTLIST" {
 		attlist := sc.ParseAttlist(p)
-		log.Infof("ATTLIST '%s' (line %d)", attlist.GetName(), sc.CurrentLine)
+		sc.Log.Infof("ATTLIST '%s' (line %d)", attlist.GetName(), sc.CurrentLine)
 		sc.logOutputAttributes(&attlist.Attributes)
 		return attlist, nil
 	}
 
 	if p.blockType == "ELEMENT" {
 		element := sc.ParseElement(p)
-		log.Infof("ELEMENT '%s' (line %d), value: '%s'", element.GetName(), sc.CurrentLine, element.Value)
+		sc.Log.Infof("ELEMENT '%s' (line %d)", element.GetName(), sc.CurrentLine)
 		return element, nil
 	}
 
 	if p.blockType == "NOTATION" {
 		notation := sc.ParseNotation(p)
-		log.Infof("NOTATION '%s' (line %d)", notation.GetName(), sc.CurrentLine)
+		sc.Log.Infof("NOTATION '%s' (line %d)", notation.GetName(), sc.CurrentLine)
 		return notation, nil
 	}
 
@@ -145,7 +147,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 func (sc *DTDScanner) ParseComment(p *parsedBlock) *DTD.Comment {
 	var c DTD.Comment
 	//s = strings.TrimRight(s, "-")
-	log.Warnf("comment stre receive '%s' and '%s'", p.name, p.value)
+	sc.Log.Debugf("comment stre receive '%s' and '%s'", p.name, p.value)
 	c.Value = p.value
 	return &c
 }
@@ -175,11 +177,11 @@ func (sc *DTDScanner) ParseElement(p *parsedBlock) *DTD.Element {
 func (sc *DTDScanner) ParseNotation(p *parsedBlock) *DTD.Notation {
 	var n DTD.Notation
 
-	parts := SeekWords(p.value)
+	parts := sc.SeekWords(p.value)
 	//l := len(parts)
-	log.Warnf("%v", parts)
+	sc.Log.Debugf("%v", parts)
 
-	n.Name = normalizeSpace(p.name)
+	n.Name = sc.normalizeSpace(p.name)
 
 	if isPublic(parts[0]) {
 		n.Public = true
@@ -217,18 +219,18 @@ func (sc *DTDScanner) ParseEntity(p *parsedBlock) *DTD.Entity {
 		e.Parameter = true
 	}
 
-	parts := SeekWords(p.value)
+	parts := sc.SeekWords(p.value)
 	l := len(parts)
 
-	log.Warnf("parts %v", parts)
+	sc.Log.Debugf("parts %v", parts)
 
-	log.Warnf("l: %d", l)
+	sc.Log.Debugf("l: %d", l)
 
 	if l == 1 {
-		e.Value = normalizeSpace(parts[0])
+		e.Value = sc.normalizeSpace(parts[0])
 		e.IsInternal = true
 		e.IsExternal = false
-		log.Warnf("value is %s", e.Value)
+		sc.Log.Debugf("value is %s", e.Value)
 	}
 
 	if l > 1 {
@@ -246,12 +248,12 @@ func (sc *DTDScanner) ParseEntity(p *parsedBlock) *DTD.Entity {
 	}
 
 	if e.System {
-		e.Url = normalizeSpace(parts[1])
+		e.Url = sc.normalizeSpace(parts[1])
 	}
 
 	if e.Public {
-		e.Value = normalizeSpace(parts[1])
-		e.Url = normalizeSpace(parts[2])
+		e.Value = sc.normalizeSpace(parts[1])
+		e.Url = sc.normalizeSpace(parts[2])
 	}
 
 	return &e
@@ -274,14 +276,14 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 	var i int
 
 	i = -1
-	s2 := normalizeSpace(s)
-	parts := SeekWords(s2)
+	s2 := sc.normalizeSpace(s)
+	parts := sc.SeekWords(s2)
 	l := len(parts)
 
-	log.Tracef("parse Attr: parts %v, s was '%s'", parts, s)
+	sc.Log.Debugf("parse Attr: parts %v, s was '%s'", parts, s)
 
 	// for idx, part := range parts {
-	// 	log.Warnf("part %d: %s", idx, part)
+	// 	sc.Log.Debugf("part %d: %s", idx, part)
 	// }
 
 	if l == 0 {
@@ -291,7 +293,7 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 	nextWord := func(i *int, l int) bool {
 		if *i+1 < l {
 			*i++
-			log.Tracef("Next word, i: %d, %s ", *i, parts[*i])
+			sc.Log.Debugf("Next word, i: %d, %s ", *i, parts[*i])
 			return true
 		}
 		return false
@@ -302,7 +304,7 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 		var attr DTD.Attribute
 
 		// empty string
-		if normalizeSpace(parts[i]) == "" {
+		if sc.normalizeSpace(parts[i]) == "" {
 			continue
 		}
 
@@ -311,18 +313,18 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 		// reference to an entity
 		if strings.HasPrefix(parts[i], "%") {
 			attr.Value = parts[i]
-			log.Tracef("- Ref. to an entity found: %s", attr.Render())
+			sc.Log.Debugf("- Ref. to an entity found: %s", attr.Render())
 			attr.IsEntity = true
 			*attributes = append(*attributes, attr)
 			continue
 		}
 
 		// first word is always the attribute name
-		attr.Name = normalizeSpace(parts[i])
-		log.Tracef("Processing attribute: '%s'", attr.Name)
+		attr.Name = sc.normalizeSpace(parts[i])
+		sc.Log.Debugf("Processing attribute: '%s'", attr.Name)
 
 		if !nextWord(&i, l) {
-			log.Fatalf("Not enough arguments to loop through attributes i:%d", i)
+			sc.Log.Fatalf("Not enough arguments to loop through attributes i:%d", i)
 
 		}
 
@@ -332,11 +334,11 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 		// Type is always in the second position
 		attr.Type = DTD.SeekAttributeType(parts[i])
 
-		log.Tracef("attribute type is %d", attr.Type)
+		sc.Log.Debugf("attribute type is %d", attr.Type)
 
 		if attr.Type == DTD.CDATA { // 20
 			nextWord(&i, l)
-			checkNextTwoArguments(parts, &i, &attr)
+			sc.checkNextTwoArguments(parts, &i, &attr)
 		}
 
 		if attr.Type == DTD.TOKEN_ID ||
@@ -347,31 +349,31 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 			attr.Type == DTD.TOKEN_NMTOKEN ||
 			attr.Type == DTD.TOKEN_NMTOKENS {
 			nextWord(&i, l)
-			checkNextTwoArguments(parts, &i, &attr)
+			sc.checkNextTwoArguments(parts, &i, &attr)
 		}
 		if attr.Type == DTD.ENUM_NOTATION {
 			nextWord(&i, l)
 			attr.Value = parts[i]
 			nextWord(&i, l)
-			checkDefaultDeclaration(&attr, parts[i])
+			sc.checkDefaultDeclaration(&attr, parts[i])
 		}
 		if attr.Type == DTD.ENUM_ENUM {
 			attr.Value = parts[i]
 			nextWord(&i, l)
-			checkDefaultDeclaration(&attr, parts[i])
+			sc.checkDefaultDeclaration(&attr, parts[i])
 		}
 
 		*attributes = append(*attributes, attr)
-		log.Warnf("*Attr rendered: %s", attr.Render())
+		sc.Log.Debugf("*Attr rendered: %s", attr.Render())
 
 		if attr.Type == 0 {
-			log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, parts[i])
+			sc.Log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, parts[i])
 		}
 
 	}
 }
 
-func checkNextTwoArguments(parts []string, i *int, attr *DTD.Attribute) {
+func (sc *DTDScanner) checkNextTwoArguments(parts []string, i *int, attr *DTD.Attribute) {
 
 	var s2 string
 	s1 := parts[*i]
@@ -382,33 +384,33 @@ func checkNextTwoArguments(parts []string, i *int, attr *DTD.Attribute) {
 		s2 = ""
 	}
 
-	log.Tracef("checkNextTwoArguments is (i: %d) testing 2 args %s and %s", *i, s1, s2)
+	sc.Log.Debugf("checkNextTwoArguments is (i: %d) testing 2 args %s and %s", *i, s1, s2)
 
 	if isQuoted(s1[0:1]) {
 		*&attr.Value = s1
-		log.Tracef("value is %s", s1)
-		if checkDefaultDeclaration(attr, s2) {
+		sc.Log.Debugf("value is %s", s1)
+		if sc.checkDefaultDeclaration(attr, s2) {
 			*i++
 		}
 	}
 
-	if checkDefaultDeclaration(attr, s1) {
-		log.Tracef("check if s2 is quoted: '%s'", s2)
+	if sc.checkDefaultDeclaration(attr, s1) {
+		sc.Log.Debugf("check if s2 is quoted: '%s'", s2)
 		if s2 != "" && isQuoted(s2[0:1]) {
-			log.Tracef("s2 is quoted: '%s'", s2)
-			log.Tracef("value is %s", s2)
+			sc.Log.Debugf("s2 is quoted: '%s'", s2)
+			sc.Log.Debugf("value is %s", s2)
 			*i++
 			*&attr.Value = s2
 
 		}
 	}
-	log.Tracef("checkNextTwoArguments i: %d", *i)
+	sc.Log.Debugf("checkNextTwoArguments i: %d", *i)
 }
 
 // output attributes in the log
 func (sc *DTDScanner) logOutputAttributes(attributes *[]DTD.Attribute) {
 	for _, attr := range *attributes {
-		log.Warnf("- Attribute: %s", attr.Render())
+		sc.Log.Debugf("- Attribute: %s", attr.Render())
 	}
 }
 
@@ -420,14 +422,14 @@ func assignIfEntityValue(e *DTD.Entity, v string) {
 }
 
 // SeekWords Walk a string and identify every words
-func SeekWords(s string) []string {
+func (sc *DTDScanner) SeekWords(s string) []string {
 
 	r2 := `"([^"]+)"|\((.*)\)[\+|\?|\*]?|([^\s]+)`
 
 	regex := regexp.MustCompile(r2)
 	parts := regex.FindAllString(s, -1)
 
-	log.Tracef("seekWords FindAllString found %#v", parts)
+	sc.Log.Debugf("seekWords FindAllString found %#v", parts)
 	return parts
 }
 
@@ -435,23 +437,23 @@ func SeekWords(s string) []string {
 func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBlock, error) {
 
 	if declaration == BLOCK_XML {
-		return SeekXMLParts(s)
+		return sc.SeekXMLParts(s)
 	}
 
-	//log.Warnf("Block line: '%s'", s)
+	//sc.Log.Debugf("Block line: '%s'", s)
 	if declaration == BLOCK_COMMENT {
-		return SeekCommentParts(s)
+		return sc.SeekCommentParts(s)
 	}
 
-	if normalizeSpace(s) == "" {
+	if sc.normalizeSpace(s) == "" {
 		return nil, errors.New("End of DTD")
 	}
 
-	return SeekBlockParts(s)
+	return sc.SeekBlockParts(s)
 }
 
 //SeekXMLParts extract Comment information from string using a Regex
-func SeekXMLParts(s string) (*parsedBlock, error) {
+func (sc *DTDScanner) SeekXMLParts(s string) (*parsedBlock, error) {
 	var p parsedBlock
 	p.blockType = "XMLDECL"
 	p.value = s
@@ -459,7 +461,7 @@ func SeekXMLParts(s string) (*parsedBlock, error) {
 }
 
 // SeekCommentParts extract Comment information from string using a Regex
-func SeekCommentParts(s string) (*parsedBlock, error) {
+func (sc *DTDScanner) SeekCommentParts(s string) (*parsedBlock, error) {
 
 	var p parsedBlock
 	var r string
@@ -471,18 +473,18 @@ func SeekCommentParts(s string) (*parsedBlock, error) {
 	p.value = strings.TrimSpace(parts[0][1])
 	p.blockType = "COMMENT"
 
-	log.Warnf("SeekCommentPart, parsed: , name: [%s], type: [%s], entity: [%s], value: [%s], s was [%s]", p.name, p.blockType, p.entity, p.value, s)
+	sc.Log.Debugf("SeekCommentPart, parsed: , name: [%s], type: [%s], entity: [%s], value: [%s], s was [%s]", p.name, p.blockType, p.entity, p.value, s)
 
 	return &p, nil
 }
 
 // SeekBlockParts extract DTD information from string using a Regex
-func SeekBlockParts(s string) (*parsedBlock, error) {
+func (sc *DTDScanner) SeekBlockParts(s string) (*parsedBlock, error) {
 
 	var p parsedBlock
 	var r string
 
-	log.Warnf("SeekBlockParts received %s", s)
+	sc.Log.Debugf("SeekBlockParts received %s", s)
 
 	r = `<\!(ENTITY|ELEMENT|ATTLIST|COMMENT|NOTATION)\s*(\%)?\s*(\S+)?\s*([^>]+)?>\s*(%[^>\s]+)?`
 
@@ -495,7 +497,7 @@ func SeekBlockParts(s string) (*parsedBlock, error) {
 	p.name = parts[0][3]
 	p.value = parts[0][4]
 
-	log.Tracef("SeekBlockParts, parsed: \n-name: %s\n-type:%s\n-entity:%s\n-value:%s, s was '%s'", p.name, p.blockType, p.entity, p.value, s)
+	sc.Log.Debugf("SeekBlockParts, parsed: \n-name: %s\n-type:%s\n-entity:%s\n-value:%s, s was '%s'", p.name, p.blockType, p.entity, p.value, s)
 
 	return &p, nil
 }
@@ -506,19 +508,19 @@ func isQuoted(s string) bool {
 }
 
 // checkEnumDefaultValue
-func checkEnumDefaultValue(attr *DTD.Attribute, parts []string) {
+func (sc *DTDScanner) checkEnumDefaultValue(attr *DTD.Attribute, parts []string) {
 
-	attr.Default = checkDefaultValue(parts[0])
-	log.Tracef("Enum Default Value: '%s'", attr.Default)
+	attr.Default = sc.checkDefaultValue(parts[0])
+	sc.Log.Debugf("Enum Default Value: '%s'", attr.Default)
 }
 
 // checkCDATADefaultValue
-func checkDefaultValue(v string) string {
+func (sc *DTDScanner) checkDefaultValue(v string) string {
 
-	log.Tracef("testing default value'%s'", v)
+	sc.Log.Debugf("testing default value'%s'", v)
 
 	if isQuoted(v[0:1]) {
-		log.Tracef("default value is '%s'", v)
+		sc.Log.Debugf("default value is '%s'", v)
 		return v
 	}
 
@@ -534,25 +536,25 @@ func checkDefaultValue(v string) string {
 		return ""
 	}
 
-	log.Tracef("Default value '%s' found", v)
+	sc.Log.Debugf("Default value '%s' found", v)
 	return v
 }
 
 // checkDefault Check if the default value if required, implied or fixed and reste Default property
-func checkDefaultDeclaration(attr *DTD.Attribute, s string) bool {
+func (sc *DTDScanner) checkDefaultDeclaration(attr *DTD.Attribute, s string) bool {
 
 	if isRequired(s) {
-		log.Trace("REQUIRED detected")
+		sc.Log.Debug("REQUIRED detected")
 		attr.Required = isRequired(s)
 		return true
 	}
 	if isImplied(s) {
-		log.Trace("IMPLIED detected")
+		sc.Log.Debug("IMPLIED detected")
 		attr.Implied = isImplied(s)
 		return true
 	}
 	if isFixed(s) {
-		log.Trace("FIXED detected")
+		sc.Log.Debug("FIXED detected")
 		attr.Fixed = isFixed(s)
 		return true
 	}
@@ -614,7 +616,7 @@ func trimQuotes(s string) string {
 // IsStartChar Determine if a character is the beginning of a DTD block
 func (sc *DTDScanner) IsStartChar() bool {
 	ret := sc.Data.Text() == "<"
-	log.Tracef("IsStartChar: %t", ret)
+	sc.Log.Debugf("IsStartChar: %t", ret)
 	return ret
 }
 
@@ -666,21 +668,21 @@ func (sc *DTDScanner) seekUntilNextBlock() (string, int) {
 
 	for sc.next() {
 
-		empty := normalizeSpace(s)
+		empty := sc.normalizeSpace(s)
 
 		if sc.IsStartChar() && sc.init && !isComment && !isXmlDecl && empty != " " {
-			log.Warnf("DTD block '%s'", s)
+			sc.Log.Debugf("DTD block '%s'", s)
 			return s, BLOCK_DTD
 		}
 
 		if isComment && s[len(s)-3:] == "-->" {
-			log.Warnf("Comment block %s", s)
+			sc.Log.Debugf("Comment block %s", s)
 			sc.init = false
 			return s, BLOCK_COMMENT
 		}
 
 		if isXmlDecl && s[len(s)-2:] == "?>" {
-			log.Warnf("XML block %s", s)
+			sc.Log.Debugf("XML block %s", s)
 			sc.init = false
 			return s, BLOCK_XML
 		}
@@ -691,17 +693,17 @@ func (sc *DTDScanner) seekUntilNextBlock() (string, int) {
 
 		s += sc.Data.Text()
 
-		if normalizeSpace(s) == "<!--" {
-			log.Trace("Comment is detected\n")
+		if sc.normalizeSpace(s) == "<!--" {
+			sc.Log.Debug("Comment is detected\n")
 			isComment = true
 		}
 
-		if normalizeSpace(s) == "<?xml" {
-			log.Trace("XML is detected\n")
+		if sc.normalizeSpace(s) == "<?xml" {
+			sc.Log.Debug("XML is detected\n")
 			isXmlDecl = true
 		}
 
-		log.Tracef("seekUntilNextBlock: Character '%s', Word is '%s'", sc.Data.Text(), s)
+		sc.Log.Debugf("seekUntilNextBlock: Character '%s', Word is '%s'", sc.Data.Text(), s)
 
 	}
 
@@ -747,9 +749,9 @@ func (sc *DTDScanner) SeekBlock() string {
 		c := sc.Data.Text()
 
 		if c == "\r" || c == "\n" {
-			log.Trace("Character '\\n' (new line)")
+			sc.Log.Debug("Character '\\n' (new line)")
 		} else {
-			log.Tracef("Character '%s'", c)
+			sc.Log.Debugf("Character '%s'", c)
 		}
 
 		if sc.Data.Text() == ">" {
@@ -762,11 +764,11 @@ func (sc *DTDScanner) SeekBlock() string {
 }
 
 // normalizeSpace Convert Line breaks, multiple space into a single space
-func normalizeSpace(s string) string {
+func (sc *DTDScanner) normalizeSpace(s string) string {
 	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
 	s1 := regexLineBreak.ReplaceAllString(s, " ")
 	space := regexp.MustCompile(`\s+|\t`)
 	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
-	log.Tracef("Normalized string is '%s'", nm)
+	sc.Log.Debugf("normalizeSpace: string is '%s'", nm)
 	return nm
 }

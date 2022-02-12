@@ -8,12 +8,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	DTDParser "github.com/blefort/DTDParser/parser"
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // main func
@@ -26,37 +28,9 @@ func main() {
 	stripComment := flag.Bool("srip-comments", false, "Strip comments")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
 	verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
-	logFormat := flag.String("log-format", "default", "Log format, <json> or <default>")
 	ignoreExtRef := flag.Bool("ignore-external-ref", false, "Do not process external references")
 
 	flag.Parse()
-
-	// configure logger
-	if *logFormat == "json" {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	if *verbosity == "v" {
-		log.SetLevel(logrus.InfoLevel)
-	}
-
-	if *verbosity == "vv" {
-		log.SetLevel(logrus.DebugLevel)
-	}
-
-	if *verbosity == "trace" {
-		log.SetLevel(logrus.TraceLevel)
-	}
-
-	// log input
-	log.Infof("Starting DTD parser")
-	log.Infof(" - Option DTD: %s", *DTDFullPath)
-	log.Infof(" - Option Output DTD: %s", *DTDOutput)
-	log.Infof(" - Option Strip Comments: %t", *stripComment)
-	log.Infof(" - Option Verbosity: %s", *verbosity)
-	log.Infof(" - Option ignore external references: %t", *ignoreExtRef)
-	log.Infof(" - Option json log format: %s", *logFormat)
-	log.Infof("")
 
 	// Process DTD
 	if *DTDFullPath == "" {
@@ -69,6 +43,65 @@ func main() {
 		os.Exit(1)
 	}
 
+	logFile := DTDFullPathAbs + ".log"
+	os.Remove(logFile)
+
+	cfg := zap.Config{
+		Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
+		Development:       false,
+		DisableCaller:     true,
+		DisableStacktrace: true,
+		Sampling:          nil,
+		Encoding:          "console",
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey:     "m",
+			LevelKey:       "",
+			TimeKey:        "",
+			NameKey:        "",
+			CallerKey:      "",
+			StacktraceKey:  "stack",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+			EncodeName:     zapcore.FullNameEncoder,
+		},
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stdout"},
+	}
+
+	cfg.EncoderConfig.TimeKey = zapcore.OmitKey
+
+	logger, err := cfg.Build()
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync() // flushes buffer, if any
+	log := logger.Sugar()
+
+	// if *verbosity == "v" {
+	// //	log.
+	// }
+
+	// if *verbosity == "vv" {
+	// 	log.SetLevel(logrus.DebugLevel)
+	// }
+
+	// if *verbosity == "trace" {
+	// 	log.SetLevel(logrus.TraceLevel)
+	// }
+
+	// log input
+	log.Infof("Starting DTD parser")
+	log.Infof(" - Option DTD: %s", *DTDFullPath)
+	log.Infof(" - Option Output DTD: %s", *DTDOutput)
+	log.Infof(" - Option Strip Comments: %t", *stripComment)
+	log.Infof(" - Option Verbosity: %s", *verbosity)
+	log.Infof(" - Option ignore external references: %t", *ignoreExtRef)
+	//log.Infof(" - Option json log format: %s", *logFormat)
+	log.Infof("")
+
 	if _, err := os.Stat(DTDFullPathAbs); os.IsNotExist(err) {
 		log.Fatal("Provide a valid path to a DTD file")
 	}
@@ -77,6 +110,7 @@ func main() {
 	p := DTDParser.NewDTDParser()
 
 	// Configure parser
+	p.Log = log
 	p.WithComments = !*stripComment
 	p.IgnoreExtRefIssue = *ignoreExtRef
 
@@ -107,7 +141,11 @@ func main() {
 	}
 
 	// Parse & render
+	t1 := time.Now()
 	p.Parse(DTDFullPathAbs)
-	p.RenderDTD("")
-	p.RenderGoStructs()
+	t2 := time.Now()
+	diff := t2.Sub(t1)
+	fmt.Println(diff)
+	//p.RenderDTD("")
+	//p.RenderGoStructs()
 }

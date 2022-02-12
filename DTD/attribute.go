@@ -102,6 +102,6 @@ func AttributeType(a int) string {
 	case ENUM_ENUM:
 		return ""
 	}
-	log.Tracef("No attribute type conversion possible for '%d'", a)
+	log.Debugf("No attribute type conversion possible for '%d'", a)
 	return ""
 }

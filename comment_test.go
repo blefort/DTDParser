@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
-	log "github.com/sirupsen/logrus"
 )
 
 // CommentTestResult struct to test comment
@@ -79,19 +78,19 @@ func TestCommentPanic(t *testing.T) {
 func CommentExported() {
 	var c DTD.Comment
 	ret := c.GetExported()
-	log.Tracef("CommentExported( return %t", ret)
+	log.Debugf("CommentExported( return %t", ret)
 }
 
 // CommentExported() Helper to test DTD.comment.GetParameter()
 func CommentGetParameter() {
 	var c DTD.Comment
 	ret := c.GetParameter()
-	log.Tracef("CommentExported( return %t", ret)
+	log.Debugf("CommentExported( return %t", ret)
 }
 
 //  CommentGetUrl() Helper to test DTD.comment.GetUrl()
 func CommentGetUrl() {
 	var c DTD.Comment
 	ret := c.GetUrl()
-	log.Tracef("CommentUrl( return %s", ret)
+	log.Debugf("CommentUrl( return %s", ret)
 }

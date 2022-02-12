@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
-	log "github.com/sirupsen/logrus"
 )
 
 // loadElementTests Load element tests
@@ -69,19 +68,19 @@ func TestElementPanic(t *testing.T) {
 func ElementExported() {
 	var e DTD.Element
 	ret := e.GetExported()
-	log.Tracef("ElementExported( return %t", ret)
+	log.Debugf("ElementExported( return %t", ret)
 }
 
 // ElementExported() Helper to test DTD.Element.GetParameter()
 func ElementGetParameter() {
 	var e DTD.Element
 	ret := e.GetParameter()
-	log.Tracef("ElementExported( return %t", ret)
+	log.Debugf("ElementExported( return %t", ret)
 }
 
 // ElementExported() Helper to test DTD.Element.GetUrl()
 func ElementGetUrl() {
 	var e DTD.Element
 	ret := e.GetUrl()
-	log.Tracef("ElementUrl( return %s", ret)
+	log.Debugf("ElementUrl( return %s", ret)
 }

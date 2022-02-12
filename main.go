@@ -107,10 +107,11 @@ func main() {
 	}
 
 	// New parser
-	p := DTDParser.NewDTDParser()
+	p := DTDParser.NewDTDParser(log)
 
 	// Configure parser
-	p.Log = log
+	fmt.Printf("%v", p.Log)
+
 	p.WithComments = !*stripComment
 	p.IgnoreExtRefIssue = *ignoreExtRef
 

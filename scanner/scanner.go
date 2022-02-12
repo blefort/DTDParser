@@ -8,18 +8,14 @@ package scanner
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/blefort/DTDParser/DTD"
-)
-
-const (
-	BLOCK_COMMENT = 0
-	BLOCK_XML     = 1
-	BLOCK_DTD     = 2
 )
 
 // DTDScanner represents a DTD scanner
@@ -39,7 +35,7 @@ type DTDScanner struct {
 
 type parsedBlock struct {
 	fullString string
-	blockType  string
+	blockType  int
 	name       string
 	entity     string
 	value      string
@@ -57,11 +53,14 @@ func NewScanner(path string, s string, log *zap.SugaredLogger) *DTDScanner {
 	scanner.init = false
 	scanner.scanResult = true
 	scanner.Log = log
+	fmt.Printf("scanner instantiated\n")
+	fmt.Printf("new parser log %p", log)
 	return &scanner
 }
 
 // Next Move to the next Block
 func (sc *DTDScanner) NextBlock() bool {
+	fmt.Printf("%t", sc.scanResult)
 	return sc.scanResult
 }
 
@@ -90,52 +89,74 @@ func (sc *DTDScanner) Previous() bool {
 // Scan the string to find the next block
 func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 
-	sc.Log.Debug("Seeking for next block")
-	s, declaration := sc.seekUntilNextBlock()
+	fmt.Sprintf("Scan starts")
+	t1 := time.Now().UnixMilli()
 
-	sc.Log.Debugf("Declaration is %d", declaration)
+	//sc.Log.Debug("Seeking for next block")
+	fmt.Sprintf("seek")
+	p := sc.seekUntilNextBlock()
 
-	p, err := sc.extractDeclaration(s, declaration)
+	sc.Log.Warnf("block", zap.String("name", p.name), zap.String("value", p.value), zap.Int("type", p.blockType))
 
-	if err != nil {
-		return nil, errors.New("Unidentified block")
-	}
+	//sc.Log.Infof("Declaration  %d found in %d", declaration, diff)
 
-	if p.blockType == "XMLDECL" {
-		var xmldecl DTD.XMLDecl
-		sc.Log.Debug("XMLDECL found at line '%d")
-		return &xmldecl, nil
-	}
+	//p2, err := sc.extractDeclaration(s, declaration)
+	//t3 := time.Now().UnixMilli()
+	//diff3 := t3 - t1
+	//sc.Log.Infof("Declaration extracted in in %d", declaration, diff3)
 
-	if p.blockType == "COMMENT" {
+	//if err != nil {
+	//	return nil, errors.New("Unidentified block")
+	//}
+
+	// if p.blockType == DTD.XMLDECL {
+	// 	var xmldecl DTD.XMLDecl
+	// 	t2 := time.Now().UnixMilli()
+	// 	diff := t2 - t1
+	// 	sc.Log.Infof("XMLDECL found at line '%d' in '%d'", sc.CurrentLine, diff)
+
+	// 	return &xmldecl, nil
+	// }
+
+	if p.blockType == DTD.COMMENT {
 		comment := sc.ParseComment(p)
-		sc.Log.Infof("Commment found at line '%d'", sc.CurrentLine)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("Commment found at line '%d' in '%d'", sc.CurrentLine, diff)
 		return comment, nil
 	}
 
-	if p.blockType == "ENTITY" {
+	if p.blockType == DTD.ENTITY {
 		entity := sc.ParseEntity(p)
-		sc.Log.Infof("ENTITY '%s' (line %d)", entity.GetName(), sc.CurrentLine)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("ENTITY '%s' (line %d) in '%d'", entity.GetName(), sc.CurrentLine, diff)
 		sc.logOutputAttributes(&entity.Attributes)
 		return entity, nil
 	}
 
-	if p.blockType == "ATTLIST" {
+	if p.blockType == DTD.ATTLIST {
 		attlist := sc.ParseAttlist(p)
-		sc.Log.Infof("ATTLIST '%s' (line %d)", attlist.GetName(), sc.CurrentLine)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("ATTLIST '%s' (line %d) in '%d'", attlist.GetName(), sc.CurrentLine, diff)
 		sc.logOutputAttributes(&attlist.Attributes)
 		return attlist, nil
 	}
 
-	if p.blockType == "ELEMENT" {
+	if p.blockType == DTD.ELEMENT {
 		element := sc.ParseElement(p)
-		sc.Log.Infof("ELEMENT '%s' (line %d)", element.GetName(), sc.CurrentLine)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("ELEMENT '%s' (line %d) in '%d'", element.GetName(), sc.CurrentLine, diff)
 		return element, nil
 	}
 
-	if p.blockType == "NOTATION" {
+	if p.blockType == DTD.NOTATION {
 		notation := sc.ParseNotation(p)
-		sc.Log.Infof("NOTATION '%s' (line %d)", notation.GetName(), sc.CurrentLine)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("NOTATION '%s' (line %d) in '%d'", notation.GetName(), sc.CurrentLine, diff)
 		return notation, nil
 	}
 
@@ -433,32 +454,32 @@ func (sc *DTDScanner) SeekWords(s string) []string {
 	return parts
 }
 
-// extractDeclaration call the rigt sekk method depending the declaration
-func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBlock, error) {
+// // extractDeclaration call the rigt sekk method depending the declaration
+// func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBlock, error) {
 
-	if declaration == BLOCK_XML {
-		return sc.SeekXMLParts(s)
-	}
+// 	if declaration == BLOCK_XML {
+// 		return sc.SeekXMLParts(s)
+// 	}
 
-	//sc.Log.Debugf("Block line: '%s'", s)
-	if declaration == BLOCK_COMMENT {
-		return sc.SeekCommentParts(s)
-	}
+// 	//sc.Log.Debugf("Block line: '%s'", s)
+// 	if declaration == BLOCK_COMMENT {
+// 		return sc.SeekCommentParts(s)
+// 	}
 
-	if sc.normalizeSpace(s) == "" {
-		return nil, errors.New("End of DTD")
-	}
+// 	if sc.normalizeSpace(s) == "" {
+// 		return nil, errors.New("End of DTD")
+// 	}
 
-	return sc.SeekBlockParts(s)
-}
+// 	return sc.SeekBlockParts(s)
+// }
 
 //SeekXMLParts extract Comment information from string using a Regex
-func (sc *DTDScanner) SeekXMLParts(s string) (*parsedBlock, error) {
-	var p parsedBlock
-	p.blockType = "XMLDECL"
-	p.value = s
-	return &p, nil
-}
+// func (sc *DTDScanner) SeekXMLParts(s string) (*parsedBlock, error) {
+// 	var p parsedBlock
+// 	p.blockType = "XMLDECL"
+// 	p.value = s
+// 	return &p, nil
+// }
 
 // SeekCommentParts extract Comment information from string using a Regex
 func (sc *DTDScanner) SeekCommentParts(s string) (*parsedBlock, error) {
@@ -471,7 +492,7 @@ func (sc *DTDScanner) SeekCommentParts(s string) (*parsedBlock, error) {
 	parts := regex.FindAllStringSubmatch(s, -1)
 
 	p.value = strings.TrimSpace(parts[0][1])
-	p.blockType = "COMMENT"
+	p.blockType = DTD.COMMENT
 
 	sc.Log.Debugf("SeekCommentPart, parsed: , name: [%s], type: [%s], entity: [%s], value: [%s], s was [%s]", p.name, p.blockType, p.entity, p.value, s)
 
@@ -492,7 +513,7 @@ func (sc *DTDScanner) SeekBlockParts(s string) (*parsedBlock, error) {
 	parts := regex.FindAllStringSubmatch(s, -1)
 
 	p.fullString = parts[0][0]
-	p.blockType = parts[0][1]
+	//p.blockType = parts[0][1]
 	p.entity = parts[0][2]
 	p.name = parts[0][3]
 	p.value = parts[0][4]
@@ -657,11 +678,13 @@ func (sc *DTDScanner) isEndOfLine() bool {
 }
 
 // seekUntilNextBlock return string until next block is found
-func (sc *DTDScanner) seekUntilNextBlock() (string, int) {
+func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 
 	var s string
-	isComment := false
-	isXmlDecl := false
+	var p parsedBlock
+	var contentPosition int
+	var word string
+	var endOfWord bool
 
 	sc.CurrentLine = sc.LineCount
 	s += sc.Data.Text()
@@ -670,52 +693,96 @@ func (sc *DTDScanner) seekUntilNextBlock() (string, int) {
 
 		empty := sc.normalizeSpace(s)
 
-		if sc.IsStartChar() && sc.init && !isComment && !isXmlDecl && empty != " " {
-			sc.Log.Debugf("DTD block '%s'", s)
-			return s, BLOCK_DTD
+		// element
+		if p.blockType == DTD.ELEMENT {
+
+			if endOfWord && p.name == "" {
+				p.name = word
+				word = ""
+				contentPosition = len(s) + 1
+			}
+
+		}
+		if p.blockType == DTD.ELEMENT && sc.Data.Text() == ">" {
+			p.value = word
+			sc.Log.Warnf("block", p)
+			return &p
 		}
 
-		if isComment && s[len(s)-3:] == "-->" {
-			sc.Log.Debugf("Comment block %s", s)
-			sc.init = false
-			return s, BLOCK_COMMENT
+		if p.blockType == DTD.ATTLIST {
+
+			if endOfWord && p.name == "" {
+				p.name = word
+				word = ""
+			}
 		}
 
-		if isXmlDecl && s[len(s)-2:] == "?>" {
-			sc.Log.Debugf("XML block %s", s)
-			sc.init = false
-			return s, BLOCK_XML
+		if p.blockType == DTD.ATTLIST && sc.Data.Text() == ">" {
+			p.value = s[contentPosition : len(s)-1]
+			return &p
+		}
+
+		if sc.IsStartChar() && p.blockType == DTD.ENTITY && empty != " " {
+
+			p.value = s[contentPosition : len(s)-1]
+
+		}
+
+		if p.blockType == DTD.COMMENT && s[len(s)-3:] == "-->" && empty != " " {
+
+			p.value = s[contentPosition : len(s)-1]
+
 		}
 
 		if sc.IsStartChar() && !sc.init {
 			sc.init = true
 		}
 
+		word = sc.normalizeSpace(word + sc.Data.Text())
+		sc.Log.Warnf("Word:", zap.String("w", word))
+		sc.Log.Warnf("\n")
+
+		if len(word) > 0 && sc.isWhitespace() {
+			endOfWord = true
+		} else {
+			endOfWord = false
+		}
+
+		if word == "<!--" {
+			p.blockType = DTD.COMMENT
+			word = ""
+		}
+
+		if word == "<?xml" {
+			p.blockType = DTD.XMLDECL
+			word = ""
+		}
+
+		if word == "<!ELEMENT" {
+			p.blockType = DTD.ELEMENT
+			word = ""
+		}
+
+		if word == "<!ATTLIST" {
+			p.blockType = DTD.ATTLIST
+			word = ""
+		}
+
+		if word == "<!ENTITY" {
+			p.blockType = DTD.ENTITY
+			word = ""
+		}
+
+		if word == "<!NOTATION" {
+			p.blockType = DTD.ENTITY
+			word = ""
+		}
+
 		s += sc.Data.Text()
 
-		if sc.normalizeSpace(s) == "<!--" {
-			sc.Log.Debug("Comment is detected\n")
-			isComment = true
-		}
-
-		if sc.normalizeSpace(s) == "<?xml" {
-			sc.Log.Debug("XML is detected\n")
-			isXmlDecl = true
-		}
-
-		sc.Log.Debugf("seekUntilNextBlock: Character '%s', Word is '%s'", sc.Data.Text(), s)
-
 	}
 
-	if isComment {
-		return s, BLOCK_COMMENT
-	}
-
-	if isXmlDecl {
-		return s, BLOCK_XML
-	}
-
-	return s, BLOCK_DTD
+	return &p
 
 }
 
@@ -769,6 +836,5 @@ func (sc *DTDScanner) normalizeSpace(s string) string {
 	s1 := regexLineBreak.ReplaceAllString(s, " ")
 	space := regexp.MustCompile(`\s+|\t`)
 	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
-	sc.Log.Debugf("normalizeSpace: string is '%s'", nm)
 	return nm
 }

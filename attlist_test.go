@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
-	log "github.com/sirupsen/logrus"
 )
 
 // AttrTestResult struct to attributes
@@ -62,8 +61,8 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 
 		AttlistBlock := p.Collection[idx].(*DTD.Attlist)
 
-		//log.Tracef("Attlist: test: %#v", test)
-		//log.Tracef("Attlist: parsed: %#v", AttlistBlock)
+		//log.Debugf("Attlist: test: %#v", test)
+		//log.Debugf("Attlist: parsed: %#v", AttlistBlock)
 
 		if len(AttlistBlock.Attributes) == 0 {
 			t.Errorf("Attlist: Not attribute definition found in '%#v'", AttlistBlock)
@@ -126,19 +125,19 @@ func TestAttlistPanic(t *testing.T) {
 func AttlistExported() {
 	var a DTD.Attlist
 	ret := a.GetExported()
-	log.Tracef("AttlistExported( return %t", ret)
+	log.Debugf("AttlistExported( return %t", ret)
 }
 
 // AttlistExported() Helper to test DTD.Attlist.GetParameter()
 func AttlistGetParameter() {
 	var a DTD.Attlist
 	ret := a.GetParameter()
-	log.Tracef("AttlistExported( return %t", ret)
+	log.Debugf("AttlistExported( return %t", ret)
 }
 
 // AttlistGetUrl() Helper to test DTD.Attlist.GetUrl()
 func AttlistGetUrl() {
 	var a DTD.Attlist
 	ret := a.GetUrl()
-	log.Tracef("AttlistUrl( return %s", ret)
+	log.Debugf("AttlistUrl( return %s", ret)
 }

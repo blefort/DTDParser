@@ -4,8 +4,6 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // loadEntityTests Load entity tests

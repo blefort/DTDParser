@@ -118,6 +118,10 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	// 	return &xmldecl, nil
 	// }
 
+	if p.blockType == DTD.UNIDENTIFIED {
+		return nil, errors.New("Unidentified block")
+	}
+
 	if p.blockType == DTD.COMMENT {
 		comment := sc.ParseComment(p)
 		t2 := time.Now().UnixMilli()
@@ -691,7 +695,8 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 
 	for sc.next() {
 
-		empty := sc.normalizeSpace(s)
+		s += sc.Data.Text()
+		sc.Log.Warnf("Processing", zap.String("s", s))
 
 		// element
 		if p.blockType == DTD.ELEMENT {
@@ -703,6 +708,7 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 			}
 
 		}
+
 		if p.blockType == DTD.ELEMENT && sc.Data.Text() == ">" {
 			p.value = word
 			sc.Log.Warnf("block", p)
@@ -722,15 +728,17 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 			return &p
 		}
 
-		if sc.IsStartChar() && p.blockType == DTD.ENTITY && empty != " " {
+		if sc.IsStartChar() && p.blockType == DTD.ENTITY {
 
 			p.value = s[contentPosition : len(s)-1]
 
 		}
 
-		if p.blockType == DTD.COMMENT && s[len(s)-3:] == "-->" && empty != " " {
+		if p.blockType == DTD.COMMENT && s[len(s)-3:] == "-->" {
 
-			p.value = s[contentPosition : len(s)-1]
+			sc.Log.Warnf("content", zap.Int("contentposition", contentPosition), zap.String("s", s))
+			p.value = strings.TrimSpace(s[contentPosition : len(s)-3])
+			return &p
 
 		}
 
@@ -739,7 +747,9 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 		}
 
 		word = sc.normalizeSpace(word + sc.Data.Text())
-		sc.Log.Warnf("Word:", zap.String("w", word))
+		sc.Log.Warnf("Word:",
+			zap.String("w", word),
+			zap.String("s", s))
 		sc.Log.Warnf("\n")
 
 		if len(word) > 0 && sc.isWhitespace() {
@@ -750,6 +760,7 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 
 		if word == "<!--" {
 			p.blockType = DTD.COMMENT
+			contentPosition = len(s)
 			word = ""
 		}
 
@@ -778,10 +789,8 @@ func (sc *DTDScanner) seekUntilNextBlock() *parsedBlock {
 			word = ""
 		}
 
-		s += sc.Data.Text()
-
 	}
-
+	p.blockType = DTD.UNIDENTIFIED
 	return &p
 
 }

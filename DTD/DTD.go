@@ -21,6 +21,7 @@ import (
 
 const (
 	// DTD Block type
+	UNIDENTIFIED    = -1
 	XMLDECL         = 0
 	ATTRIBUTE       = 1
 	COMMENT         = 3

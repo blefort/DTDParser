@@ -74,31 +74,31 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 
 			attrTest := test.Attributes[attrID]
 
-			ret = t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name, attr))
+			ret = t.Run("Attlist:Attribute:Check name", checkStrValue(attr.Name, attrTest.Name, attr, attrTest))
 
 			if !ret {
 				t.FailNow()
 			}
 
-			ret = ret && t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Value, attrTest.Value, attr))
+			ret = ret && t.Run("Attlist:Attribute:Check default value", checkStrValue(attr.Value, attrTest.Value, attr, attrTest))
 
 			if !ret {
 				t.FailNow()
 			}
 
-			ret = ret && t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required, attr))
+			ret = ret && t.Run("Attlist:Attribute:Check #REQUIRED", checkBoolValue(attr.Required, attrTest.Required, attr, test))
 
 			if !ret {
 				t.FailNow()
 			}
 
-			ret = ret && t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied, attr))
+			ret = ret && t.Run("Attlist:Attribute:Check #IMPLIED", checkBoolValue(attr.Implied, attrTest.Implied, attr, test))
 
 			if !ret {
 				t.FailNow()
 			}
 
-			ret = ret && t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr))
+			ret = ret && t.Run("Attlist:Attribute:Check #FIXED", checkBoolValue(attr.Fixed, attrTest.Fixed, attr, test))
 
 			if !ret {
 				t.FailNow()
@@ -109,7 +109,7 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 			}
 
 		}
-		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name, test))
+		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name, test, AttlistBlock))
 	}
 	t.Run("Render DTD", render(p))
 }

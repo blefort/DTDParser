@@ -22,7 +22,7 @@ func TestParseElementBlock(t *testing.T) {
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	testElementDTD(t, "tmp/element.dtd", false)
+	//	testElementDTD(t, "tmp/element.dtd", false)
 }
 
 // testElementDTD main tests for elementDTD
@@ -51,8 +51,8 @@ func testElementDTD(t *testing.T, path string, recreate bool) {
 
 		parsedBlock := p.Collection[idx]
 
-		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name, test))
-		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value, test))
+		t.Run("Check name", checkStrValue(parsedBlock.GetName(), test.Name, parsedBlock, test))
+		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value, parsedBlock, test))
 	}
 	t.Run("Render DTD", render(p))
 }

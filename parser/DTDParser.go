@@ -10,7 +10,6 @@ package DTDParser
 // https://bp.Log.gopheracademy.com/advent-2014/parsers-lexers/
 //
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -102,18 +101,15 @@ func (p *Parser) removeFile(filepath string) {
 func (p *Parser) Parse(filePath string) {
 	var filespaths []string
 
-	fmt.Printf("open %s\n", filePath)
 	if p.filepaths == nil {
-		fmt.Printf("alloc %s\n", filePath)
+
 		p.filepaths = &filespaths
 		p.Log.Debugf("Parser filepaths was nil")
 	}
-	fmt.Printf("assign %s\n", filePath)
 	p.Filepath = filePath
 
 	// Open file
 
-	fmt.Printf("red %s\n", filePath)
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
 
 	if err != nil {
@@ -121,37 +117,31 @@ func (p *Parser) Parse(filePath string) {
 	}
 
 	// Fileinfo
-	fmt.Printf("fileinfo %s\n", filePath)
 	stat, err := os.Stat(filePath)
-	fmt.Printf("fileinfo  done%s\n", filePath)
 	if err != nil {
-		fmt.Printf("fileinfo err %s\n", err)
+
 		p.Log.Fatal(err)
 	}
 
-	fmt.Printf("stat %s\n", filePath)
 	bytes := stat.Size()
 	p.Log.Debugf("Parsing '%s', %d bytes", p.Filepath, bytes)
 
-	fmt.Printf("append %s\n", filePath)
 	*p.filepaths = append(*p.filepaths, p.Filepath)
 
 	// use  bufio to read file rune by rune
 	inputdata := string(filebuffer)
 
 	//p.Log.Debugf("File content is: %s", inputdata)
-	fmt.Printf("scam %s\n", filePath)
 	scanner := scanner.NewScanner(filePath, inputdata, p.Log)
 
 	// not sure if this is correct methodology
 	// I tried to separate the DTD Scanner from the parser
 	// the scanner should send DTD blocks that the parser
 	// will put in a collection.
-	fmt.Printf("next %s\n", filePath)
 	for scanner.NextBlock() {
-		fmt.Printf("Scanning...")
+
 		DTDBlock, err := scanner.Scan()
-		fmt.Printf("block returned...")
+
 		if err != nil {
 			p.Log.Debugf("%v", err)
 			continue
@@ -176,7 +166,7 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 
 	p.Log.Debugf("Check entity '%s' for external reference", e.Name)
 
-	if !e.ExternalDTD {
+	if !e.IsExternal {
 		p.Log.Debugf("No external DTD in entity %s", e.Name)
 		return
 	}
@@ -223,8 +213,6 @@ func (p *Parser) SetExportEntity(name string) {
 
 // RenderDTD Render a collection to a or a set of DTD files
 func (p *Parser) RenderDTD(parentDir string) {
-
-	fmt.Printf("pointer 2: %p", p.Log)
 
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory

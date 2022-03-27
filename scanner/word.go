@@ -1,0 +1,55 @@
+package scanner
+
+import (
+	"strings"
+
+	"go.uber.org/zap"
+)
+
+type word struct {
+	sequence string
+	append   bool
+	isQuoted bool
+	endChar  string
+	done     bool
+	log      *zap.SugaredLogger
+}
+
+func newWord(Log *zap.SugaredLogger) *word {
+	var w word
+	w.append = false
+	w.isQuoted = false
+	w.done = false
+	w.log = Log
+	w.endChar = " "
+	return &w
+}
+
+func (w *word) scan(s string) {
+
+	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar {
+		w.done = true
+	}
+
+	if w.done {
+		return
+	}
+
+	if s != "\"" {
+		w.sequence += s
+	}
+
+	if s == "\"" {
+		w.isQuoted = true
+		w.endChar = "\""
+	}
+
+}
+
+func (w *word) stopped() bool {
+	return w.done
+}
+
+func (w *word) read() string {
+	return strings.TrimSpace(w.sequence)
+}

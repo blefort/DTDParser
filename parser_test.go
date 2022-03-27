@@ -115,23 +115,23 @@ func render(p *DTDParser.Parser) func(*testing.T) {
  */
 
 // checkStrValue Check if the block found from the parser has the expected value
-func checkStrValue(a string, b string, i interface{}) func(*testing.T) {
+func checkStrValue(a string, b string, i interface{}, f interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Debugf("Received string value, '%s' to be compared to expected value '%s'", a, b)
 		if a != b {
 			ac := strings.ReplaceAll(a, "\n", "\\n")
 			bc := strings.ReplaceAll(b, "\n", "\\n")
-			t.Errorf("Received wrong value, '%s' instead of '%s' - %+v", ac, bc, i)
+			t.Errorf("Received wrong value, '%s' instead of '%s' - %+v - %+v", ac, bc, i, f)
 		}
 	}
 }
 
 // checkBoolValue Check if the block found from the parser has the expected value
-func checkBoolValue(a bool, b bool, i interface{}) func(*testing.T) {
+func checkBoolValue(a bool, b bool, i interface{}, f interface{}) func(*testing.T) {
 	return func(t *testing.T) {
 		log.Debugf("Received bool value, '%t' to be compared to expected value '%t'", a, b)
 		if a != b {
-			t.Errorf("Received wrong bool value, '%t' instead of '%t'- %+v", a, b, i)
+			t.Errorf("Received wrong bool value, '%t' instead of '%t' - %+v - %+v", a, b, i, f)
 		}
 	}
 }

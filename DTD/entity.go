@@ -5,19 +5,25 @@
 // Package DTD Represents main structs of a DTD
 package DTD
 
+import "go.uber.org/zap/zapcore"
+
 // Entity representss a DTD Entity
 type Entity struct {
-	Parameter   bool
-	ExternalDTD bool
-	IsExternal  bool
-	IsInternal  bool
-	Name        string
-	Value       string
-	Public      bool
-	System      bool
-	Url         string
-	Exported    bool
-	Attributes  []Attribute
+	Parameter  bool
+	IsExternal bool
+	IsInternal bool
+	Name       string
+	Value      string
+	Public     bool
+	System     bool
+	Url        string
+	Exported   bool
+	Attributes []Attribute
+}
+
+func (e Entity) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("Rendered Entity", e.Render())
+	return nil
 }
 
 // Render an entity
@@ -39,23 +45,17 @@ func (e Entity) Render() string {
 		eType += " PUBLIC "
 	} else if e.System {
 		eType += " SYSTEM "
-	} else {
-		eType = " "
 	}
 
 	if e.Exported {
 		exportedStr = join("\n%", e.Name, ";")
 	}
 
-	if e.Url == "" {
-		url = ""
-	} else {
-		url = " \"" + e.Url + "\""
+	if e.Url != "" {
+		url = "\"" + e.Url + "\""
 	}
 
-	el := join("<!ENTITY", m, e.Name, "\n", eType, e.Value, url, ">", exportedStr, "\n")
-
-	return el
+	return join("<!ENTITY", m, e.Name, " ", eType, "\"", e.Value, "\"", url, ">", exportedStr, "\n")
 }
 
 // GetName Get the name

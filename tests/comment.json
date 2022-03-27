@@ -23,7 +23,7 @@
    {  
       "Parameter":false,
       "Name":"comment",
-      "Value":"Comment test 4 with \n  <markup>Foo</markup>",
+      "Value":"\nComment test 4 with \n  <markup>Foo</markup>\n",
       "Url": "",
       "Exported": false
    }

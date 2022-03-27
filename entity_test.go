@@ -22,7 +22,7 @@ func TestParseEntityBlock(t *testing.T) {
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	log.Warn("Start tests on generated 'tmp/entity.dtd'")
+	//	log.Warn("Start tests on generated 'tmp/entity.dtd'")
 	//testEntityDTD(t, "tmp/entity.dtd", false)
 }
 
@@ -53,13 +53,13 @@ func testEntityDTD(t *testing.T, path string, recreate bool) {
 
 		entityBlock := p.Collection[idx].(*DTD.Entity)
 
-		t.Run("Check name", checkStrValue(entityBlock.Name, test.Name, test))
-		t.Run("Check value", checkStrValue(entityBlock.Value, test.Value, test))
-		t.Run("Check Parameter", checkBoolValue(entityBlock.Parameter, test.Parameter, test))
-		t.Run("Check System", checkBoolValue(entityBlock.System, test.System, test))
-		t.Run("Check Public", checkBoolValue(entityBlock.Public, test.Public, test))
-		t.Run("Check External Entity", checkBoolValue(entityBlock.IsExternal, test.IsExternal, test))
-		t.Run("Check Url", checkStrValue(entityBlock.Url, test.Url, test))
+		t.Run("Check name", checkStrValue(entityBlock.Name, test.Name, entityBlock, test))
+		t.Run("Check value", checkStrValue(entityBlock.Value, test.Value, entityBlock, test))
+		t.Run("Check Parameter", checkBoolValue(entityBlock.Parameter, test.Parameter, entityBlock, test))
+		t.Run("Check System", checkBoolValue(entityBlock.System, test.System, entityBlock, test))
+		t.Run("Check Public", checkBoolValue(entityBlock.Public, test.Public, entityBlock, test))
+		t.Run("Check External Entity", checkBoolValue(entityBlock.IsExternal, test.IsExternal, entityBlock, test))
+		t.Run("Check Url", checkStrValue(entityBlock.Url, test.Url, entityBlock, test))
 	}
 	t.Run("Render DTD", render(p))
 }

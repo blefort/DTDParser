@@ -136,6 +136,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	fmt.Sprintf("seek %v", s)
 
 	sc.findDTDBlockType(s)
+	sc.findInsertedEntity(s)
 
 	if s.DTDType == DTD.UNIDENTIFIED {
 		return nil, errors.New("Unidentified block")
@@ -253,20 +254,17 @@ func (sc *DTDScanner) ParseNotation(p *parsedBlock) *DTD.Notation {
 func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	var e DTD.Entity
 
-	words := s.getWords()
+	words := s.getWords(true)
 	idx := 0
+	pidx := 1
 
 	for i, w := range words {
 
-		//stopped := "not stopped"
-		//if w.stopped() {
-		//	stopped = "stopped"
-		//}
-
-		//sc.Log.Warnf("- [" + w.read() + "] " + stopped)
+		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.read() + "] ")
 
 		if w.read() == "%" {
 			e.Parameter = true
+			pidx = i + 1
 		}
 
 		if w.read() == "PUBLIC" {
@@ -282,11 +280,7 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 		}
 	}
 
-	if e.Parameter {
-		e.Name = s.words[2].read()
-	} else {
-		e.Name = s.words[1].read()
-	}
+	e.Name = words[pidx].read()
 
 	if e.System {
 		e.Url = words[idx+1].read()
@@ -294,9 +288,9 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 		e.Url = words[idx+2].read()
 		e.Value = words[idx+1].read()
 	} else if e.Parameter {
-		e.Value = s.words[3].read()
+		e.Value = words[3].read()
 	} else {
-		e.Value = words[2].read()
+		e.Value = words[len(words)-1].read()
 	}
 
 	return &e
@@ -467,24 +461,6 @@ func (sc *DTDScanner) SeekWords(s string) []string {
 // 	return &p, nil
 // }
 
-// SeekCommentParts extract Comment information from string using a Regex
-func (sc *DTDScanner) SeekCommentParts(s string) (*parsedBlock, error) {
-
-	var p parsedBlock
-	var r string
-
-	r = `<!--([\s\S\n]*?)-->`
-	regex := regexp.MustCompile(r)
-	parts := regex.FindAllStringSubmatch(s, -1)
-
-	p.value = strings.TrimSpace(parts[0][1])
-	p.blockType = DTD.COMMENT
-
-	sc.Log.Debugf("SeekCommentPart, parsed: , name: [%s], type: [%s], entity: [%s], value: [%s], s was [%s]", p.name, p.blockType, p.entity, p.value, s)
-
-	return &p, nil
-}
-
 // SeekBlockParts extract DTD information from string using a Regex
 // func (sc *DTDScanner) SeekBlockParts(s string) (*parsedBlock, error) {
 
@@ -583,12 +559,14 @@ func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 
 	sc.CurrentLine = sc.LineCount
 	sc.Log.Warnf("start scanning sentence with char '" + sc.Data.Text() + "'")
+
 	sentence.scan(sc.Data.Text())
 
 	for sc.next() {
 
 		if sentence.scan(sc.Data.Text()) {
 			sentence.read()
+			sc.next()
 			return sentence
 		}
 	}
@@ -599,20 +577,36 @@ func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 }
 
 func (sc *DTDScanner) findDTDBlockType(s *sentence) {
-	w := s.words[0].read()
-	sc.Log.Warnf("word is" + w)
-	if len(w) > 2 && w[0:3] == "!--" {
+
+	words := s.getWords(true)
+
+	if len(words) == 0 {
+		return
+	}
+
+	w := words[0].read()
+
+	if len(w) > 3 && w[0:4] == "<!--" {
 		s.DTDType = DTD.COMMENT
-	} else if w == "!ATTLIST" {
+	} else if w == "<!ATTLIST" {
 		s.DTDType = DTD.ATTLIST
-	} else if w == "!ELEMENT" {
+	} else if w == "<!ELEMENT" {
 		s.DTDType = DTD.ELEMENT
-	} else if w == "!NOTATION" {
+	} else if w == "<!NOTATION" {
 		s.DTDType = DTD.NOTATION
-	} else if w == "!ENTITY" {
+	} else if w == "<!ENTITY" {
 		s.DTDType = DTD.ENTITY
 	}
 	sc.Log.Warnf(fmt.Sprintf("%d", s.DTDType))
+}
+
+func (sc *DTDScanner) findInsertedEntity(s *sentence) {
+
+	words := s.getWords(false)
+
+	for _, word := range words {
+		s.log.Warnf("++Word:" + word.read())
+	}
 }
 
 // normalizeSpace Convert Line breaks, multiple space into a single space

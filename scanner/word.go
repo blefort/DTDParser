@@ -7,12 +7,13 @@ import (
 )
 
 type word struct {
-	sequence string
-	append   bool
-	isQuoted bool
-	endChar  string
-	done     bool
-	log      *zap.SugaredLogger
+	sequence   string
+	append     bool
+	isQuoted   bool
+	endChar    string
+	done       bool
+	inSequence bool
+	log        *zap.SugaredLogger
 }
 
 func newWord(Log *zap.SugaredLogger) *word {
@@ -22,6 +23,7 @@ func newWord(Log *zap.SugaredLogger) *word {
 	w.done = false
 	w.log = Log
 	w.endChar = " "
+	w.inSequence = false
 	return &w
 }
 

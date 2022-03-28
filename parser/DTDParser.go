@@ -196,6 +196,7 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 	extP.Overwrite = p.Overwrite
 	extP.Parse(path)
 
+	p.Log.Warnf("*** /end of New parser %s", path)
 	p.parsers = append(p.parsers, *extP)
 
 }

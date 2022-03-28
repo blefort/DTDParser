@@ -44,10 +44,10 @@ func (se *sentence) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
-func (se *sentence) getWords() []*word {
+func (se *sentence) getWords(inSequence bool) []*word {
 	var words []*word
 	for _, w := range se.words {
-		if w.stopped() && w.read() != "" {
+		if w.stopped() && w.read() != "" && w.inSequence == inSequence {
 			words = append(words, w)
 		}
 	}
@@ -60,6 +60,19 @@ func (se *sentence) scan(s string) bool {
 
 	if !se.append && s == se.start[0:1] {
 		se.append = true
+	}
+
+	// compute words in sequence
+	//se.log.Warnf(s)
+	if !se.words[wordIdx].stopped() {
+		se.words[wordIdx].inSequence = se.appendTosentence
+		se.words[wordIdx].scan(s)
+	} else {
+		word := newWord(se.log)
+		se.words = append(se.words, word)
+		wordIdx = len(se.words) - 1
+		se.words[wordIdx].inSequence = se.appendTosentence
+		se.words[wordIdx].scan(s)
 	}
 
 	if !se.append {
@@ -80,7 +93,6 @@ func (se *sentence) scan(s string) bool {
 		se.sequence = se.start
 	}
 
-	se.log.Warnf("char:" + s)
 	se.sequence += s
 
 	if se.appendTosentence {
@@ -91,15 +103,6 @@ func (se *sentence) scan(s string) bool {
 			se.appendTosentence = false
 			se.append = false
 			return se.stopped()
-		}
-
-		if !se.words[wordIdx].stopped() {
-			se.words[wordIdx].scan(s)
-		} else {
-			word := newWord(se.log)
-			se.words = append(se.words, word)
-			wordIdx = len(se.words) - 1
-			se.words[wordIdx].scan(s)
 		}
 
 	}

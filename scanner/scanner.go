@@ -123,7 +123,7 @@ func (sc *DTDScanner) Previous() bool {
 }
 
 // Scan the string to find the next block
-func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
+func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
 
 	fmt.Sprintf("Scan starts")
 	t1 := time.Now().UnixMilli()
@@ -136,10 +136,9 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	fmt.Sprintf("seek %v", s)
 
 	sc.findDTDBlockType(s)
-	sc.findInsertedEntity(s)
 
 	if s.DTDType == DTD.UNIDENTIFIED {
-		return nil, errors.New("Unidentified block")
+		return nil, s.getWords(false), errors.New("Unidentified block")
 	}
 
 	if s.DTDType == DTD.COMMENT {
@@ -147,7 +146,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 		t2 := time.Now().UnixMilli()
 		diff := t2 - t1
 		sc.Log.Infof("Commment found at line '%d' in '%d'", sc.CurrentLine, diff)
-		return comment, nil
+		return comment, s.getWords(false), nil
 	}
 
 	if s.DTDType == DTD.ENTITY {
@@ -162,7 +161,15 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 		sc.Log.Warnf("Entity system", entity.System)
 		sc.Log.Warnf("Entity url", entity.Url)
 		sc.Log.Warnf("Will render as", entity.Render())
-		return entity, nil
+		return entity, s.getWords(false), nil
+	}
+
+	if s.DTDType == DTD.ELEMENT {
+		element := sc.ParseElement(s)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("ELEMENT '%s' (line %d) in '%d'", element.GetName(), sc.CurrentLine, diff)
+		return element, s.getWords(false), nil
 	}
 
 	// if s.DTDType == DTD.ATTLIST {
@@ -174,14 +181,6 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	// 	return attlist, nil
 	// }
 
-	// if s.DTDType == DTD.ELEMENT {
-	// 	element := sc.ParseElement(p)
-	// 	t2 := time.Now().UnixMilli()
-	// 	diff := t2 - t1
-	// 	sc.Log.Infof("ELEMENT '%s' (line %d) in '%d'", element.GetName(), sc.CurrentLine, diff)
-	// 	return element, nil
-	// }
-
 	// if s.DTDType == DTD.NOTATION {
 	// 	notation := sc.ParseNotation(p)
 	// 	t2 := time.Now().UnixMilli()
@@ -190,7 +189,7 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 	// 	return notation, nil
 	// }
 
-	return nil, errors.New("Unidentified block")
+	return nil, s.getWords(false), errors.New("Unidentified block")
 
 }
 
@@ -198,13 +197,6 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, error) {
 func (sc *DTDScanner) ParseComment(s *sentence) *DTD.Comment {
 	var c DTD.Comment
 
-	// for _, w := range s.words {
-	// 	stopped := "not stopped"
-	// 	if w.stopped() {
-	// 		stopped = "stopped"
-	// 	}
-	// 	sc.Log.Warnf("- [" + w.read() + "] " + stopped)
-	// }
 	c.Value = s.readSequence()
 	return &c
 }
@@ -216,10 +208,21 @@ func (sc *DTDScanner) ParseComment(s *sentence) *DTD.Comment {
 // [45]   	elementdecl	   ::=   	'<!ELEMENT' S Name S contentspec S? '>'	[VC: Unique Element Type Declaration]
 // [46]   	contentspec	   ::=   	'EMPTY' | 'ANY' | Mixed | children
 //
-func (sc *DTDScanner) ParseElement(p *parsedBlock) *DTD.Element {
+func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 	var e DTD.Element
-	e.Name = p.name
-	e.Value = p.value
+
+	words := s.getWords(true)
+
+	for i, w := range words {
+
+		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+	}
+
+	if len(words) < 2 {
+		sc.Log.Fatalf("Not enough arguments in sentence '", s.sequence, "' (count was", len(words), ")")
+	}
+	e.Name = words[1].Read()
+	e.Value = words[2].Read()
 	return &e
 }
 
@@ -260,37 +263,37 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 
 	for i, w := range words {
 
-		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.read() + "] ")
+		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
 
-		if w.read() == "%" {
+		if w.Read() == "%" {
 			e.Parameter = true
 			pidx = i + 1
 		}
 
-		if w.read() == "PUBLIC" {
+		if w.Read() == "PUBLIC" {
 			e.Public = true
 			e.IsExternal = true
 			idx = i
 		}
 
-		if w.read() == "SYSTEM" {
+		if w.Read() == "SYSTEM" {
 			e.System = true
 			e.IsExternal = true
 			idx = i
 		}
 	}
 
-	e.Name = words[pidx].read()
+	e.Name = words[pidx].Read()
 
 	if e.System {
-		e.Url = words[idx+1].read()
+		e.Url = words[idx+1].Read()
 	} else if e.Public {
-		e.Url = words[idx+2].read()
-		e.Value = words[idx+1].read()
+		e.Url = words[idx+2].Read()
+		e.Value = words[idx+1].Read()
 	} else if e.Parameter {
-		e.Value = words[3].read()
+		e.Value = words[3].Read()
 	} else {
-		e.Value = words[len(words)-1].read()
+		e.Value = words[len(words)-1].Read()
 	}
 
 	return &e
@@ -584,7 +587,7 @@ func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 		return
 	}
 
-	w := words[0].read()
+	w := words[0].Read()
 
 	if len(w) > 3 && w[0:4] == "<!--" {
 		s.DTDType = DTD.COMMENT
@@ -598,15 +601,6 @@ func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 		s.DTDType = DTD.ENTITY
 	}
 	sc.Log.Warnf(fmt.Sprintf("%d", s.DTDType))
-}
-
-func (sc *DTDScanner) findInsertedEntity(s *sentence) {
-
-	words := s.getWords(false)
-
-	for _, word := range words {
-		s.log.Warnf("++Word:" + word.read())
-	}
 }
 
 // normalizeSpace Convert Line breaks, multiple space into a single space

@@ -39,7 +39,7 @@ func newsentence(start string, end string, Log *zap.SugaredLogger) *sentence {
 func (se *sentence) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 
 	for i, w := range se.words {
-		enc.AddString("Word "+string(i), w.read())
+		enc.AddString("Word "+string(i), w.Read())
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (se *sentence) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 func (se *sentence) getWords(inSequence bool) []*word {
 	var words []*word
 	for _, w := range se.words {
-		if w.stopped() && w.read() != "" && w.inSequence == inSequence {
+		if w.stopped() && w.Read() != "" && w.inSequence == inSequence {
 			words = append(words, w)
 		}
 	}

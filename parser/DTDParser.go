@@ -109,7 +109,6 @@ func (p *Parser) Parse(filePath string) {
 	p.Filepath = filePath
 
 	// Open file
-
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
 
 	if err != nil {
@@ -140,18 +139,20 @@ func (p *Parser) Parse(filePath string) {
 	// will put in a collection.
 	for scanner.NextBlock() {
 
-		DTDBlock, err := scanner.Scan()
+		DTDBlock, extraWords, err := scanner.Scan()
 
 		if err != nil {
 			p.Log.Debugf("%v", err)
 			continue
 		}
 
-		if DTD.IsExportedEntityType(DTDBlock) {
-			p.SetExportEntity(DTDBlock.GetName())
-		} else {
-			p.Collection = append(p.Collection, DTDBlock)
+		for _, word := range extraWords {
+			entityName := strings.Trim(word.Read(), "%; ")
+			p.Log.Warnf("Exporting entity: '" + entityName + "'")
+			p.SetExportEntity(entityName)
 		}
+
+		p.Collection = append(p.Collection, DTDBlock)
 
 		if DTD.IsEntityType(DTDBlock) {
 			p.parseExternalEntity(DTDBlock.(*DTD.Entity))
@@ -210,6 +211,7 @@ func (p *Parser) SetExportEntity(name string) {
 			return
 		}
 	}
+	p.Log.Warnf("could not find ", name, " in the current collection")
 }
 
 // RenderDTD Render a collection to a or a set of DTD files

@@ -23,7 +23,7 @@ func TestParseEntityBlock(t *testing.T) {
 	// - load the generated DTD
 	// - compare it to data stored in a json file
 	//	log.Warn("Start tests on generated 'tmp/entity.dtd'")
-	//testEntityDTD(t, "tmp/entity.dtd", false)
+	testEntityDTD(t, "tmp/entity.dtd", false)
 }
 
 // testEntityDTD Main testing func for entity

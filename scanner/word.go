@@ -29,7 +29,7 @@ func newWord(Log *zap.SugaredLogger) *word {
 
 func (w *word) scan(s string) {
 
-	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar {
+	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar || s == ">" {
 		w.done = true
 	}
 
@@ -52,6 +52,6 @@ func (w *word) stopped() bool {
 	return w.done
 }
 
-func (w *word) read() string {
+func (w *word) Read() string {
 	return strings.TrimSpace(w.sequence)
 }

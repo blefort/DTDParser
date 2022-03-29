@@ -22,7 +22,7 @@ func TestParseElementBlock(t *testing.T) {
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	//	testElementDTD(t, "tmp/element.dtd", false)
+	testElementDTD(t, "tmp/element.dtd", false)
 }
 
 // testElementDTD main tests for elementDTD

@@ -180,14 +180,14 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
 		return notation, s.getWords(false), nil
 	}
 
-	// if s.DTDType == DTD.ATTLIST {
-	// 	attlist := sc.ParseAttlist(p)
-	// 	t2 := time.Now().UnixMilli()
-	// 	diff := t2 - t1
-	// 	sc.Log.Infof("ATTLIST '%s' (line %d) in '%d'", attlist.GetName(), sc.CurrentLine, diff)
-	// 	sc.logOutputAttributes(&attlist.Attributes)
-	// 	return attlist, nil
-	// }
+	if s.DTDType == DTD.ATTLIST {
+		attlist := sc.ParseAttlist(s)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("ATTLIST '%s' (line %d) in '%d'", attlist.GetName(), sc.CurrentLine, diff)
+		sc.logOutputAttributes(&attlist.Attributes)
+		return attlist, s.getWords(false), nil
+	}
 
 	return nil, s.getWords(false), errors.New("Unidentified block")
 
@@ -330,34 +330,35 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 // [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
 // [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
 //
-func (sc *DTDScanner) ParseAttlist(p *parsedBlock) *DTD.Attlist {
+func (sc *DTDScanner) ParseAttlist(s *sentence) *DTD.Attlist {
 	var attlist DTD.Attlist
-	attlist.Name = p.name
-	sc.parseAttributes(p.value, &attlist.Attributes)
+	words := s.getWords(true)
+	attlist.Name = words[1].Read()
+	sc.parseAttributes(words[2:len(words)], &attlist.Attributes)
 	return &attlist
 }
 
-func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
+func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute) {
 
 	i := -1
-	s2 := sc.normalizeSpace(s)
-	parts := sc.SeekWords(s2)
-	l := len(parts)
+	l := len(words)
 
-	sc.Log.Debugf("parse Attr: parts %v, s was '%s'", parts, s)
+	for i, w := range words {
+		sc.Log.Warnf("- " + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+	}
 
 	// for idx, part := range parts {
 	// 	sc.Log.Debugf("part %d: %s", idx, part)
 	// }
 
 	if l == 0 {
-		panic("Unable to scan Attlist")
+		//	panic("Unable to scan Attlist")
 	}
 
 	nextWord := func(i *int, l int) bool {
 		if *i+1 < l {
 			*i++
-			sc.Log.Debugf("Next word, i: %d, %s ", *i, parts[*i])
+			sc.Log.Debugf("Next word, i: %d, %s ", *i, words[*i])
 			return true
 		}
 		return false
@@ -367,45 +368,36 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 
 		var attr DTD.Attribute
 
-		// empty string
-		if sc.normalizeSpace(parts[i]) == "" {
-			continue
-		}
-
 		// instruction varies depending the type, we don't know in advance
 
 		// reference to an entity
-		if strings.HasPrefix(parts[i], "%") {
-			attr.Value = parts[i]
-			sc.Log.Debugf("- Ref. to an entity found: %s", attr.Render())
+		if words[i].Read()[0:1] == "%" {
+			sc.Log.Warnf("- Ref. to an entity found: %s", words[i].Read())
+			attr.Value = words[i].Read()
 			attr.IsEntity = true
 			*attributes = append(*attributes, attr)
 			continue
 		}
 
-		// first word is always the attribute name
-		attr.Name = sc.normalizeSpace(parts[i])
-		sc.Log.Debugf("Processing attribute: '%s'", attr.Name)
+		// // first word is always the attribute name
+		attr.Name = words[i].Read()
+		sc.Log.Warnf("Processing attribute: '%s'", attr.Name)
 
 		if !nextWord(&i, l) {
 			sc.Log.Fatalf("Not enough arguments to loop through attributes i:%d", i)
-
 		}
 
 		// CASE 2
-		// The others parts are processed by group of 3 to 4 depending the type
+		// The others words are processed by group of 3 to 4 depending the type
 
-		// Type is always in the second position
-		attr.Type = DTD.SeekAttributeType(parts[i])
-
-		sc.Log.Debugf("attribute type is %d", attr.Type)
+		// // Type is always in the second position
+		attr.Type = DTD.SeekAttributeType(words[i].Read())
+		sc.Log.Warnf("attribute type is %d", attr.Type)
 
 		if attr.Type == DTD.CDATA { // 20
 			nextWord(&i, l)
-			//		sc.checkNextTwoArguments(parts, &i, &attr)
-		}
-
-		if attr.Type == DTD.TOKEN_ID ||
+			sc.checkDefaultValue(words, &i, &attr)
+		} else if attr.Type == DTD.TOKEN_ID ||
 			attr.Type == DTD.TOKEN_IDREF ||
 			attr.Type == DTD.TOKEN_IDREFS ||
 			attr.Type == DTD.TOKEN_ENTITY ||
@@ -413,27 +405,80 @@ func (sc *DTDScanner) parseAttributes(s string, attributes *[]DTD.Attribute) {
 			attr.Type == DTD.TOKEN_NMTOKEN ||
 			attr.Type == DTD.TOKEN_NMTOKENS {
 			nextWord(&i, l)
-			//		sc.checkNextTwoArguments(parts, &i, &attr)
-		}
-		if attr.Type == DTD.ENUM_NOTATION {
+			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr)
+		} else if attr.Type == DTD.ENUM_NOTATION {
 			nextWord(&i, l)
-			attr.Value = parts[i]
-			nextWord(&i, l)
-			//		sc.checkDefaultDeclaration(&attr, parts[i])
-		}
-		if attr.Type == DTD.ENUM_ENUM {
-			attr.Value = parts[i]
-			nextWord(&i, l)
-			//		sc.checkDefaultDeclaration(&attr, parts[i])
+			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr)
+		} else if attr.Type == DTD.ENUM_ENUM {
+
+			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr)
+		} else {
+			sc.Log.Fatalf("unmanaged attribute type %d", attr.Type)
 		}
 
 		*attributes = append(*attributes, attr)
-		sc.Log.Debugf("*Attr rendered: %s", attr.Render())
+		// sc.Log.Debugf("*Attr rendered: %s", attr.Render())
 
-		if attr.Type == 0 {
-			sc.Log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, parts[i])
-		}
+		// if attr.Type == 0 {
+		// 	sc.Log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, words[i].Read())
+		// }
 
+	}
+}
+
+// heckDefaultValue
+func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute) {
+
+	ini := *i
+
+	if *i > len(w)-1 {
+		return
+	}
+
+	sc.checkRequired(w, i, attr)
+	sc.checkImplied(w, i, attr)
+	sc.checkFixed(w, i, attr)
+
+	if *i == ini {
+		attr.Value = w[*i].Read()
+		*i++
+	}
+
+}
+
+// checkRequired
+func (sc *DTDScanner) checkRequired(w []*word, i *int, attr *DTD.Attribute) {
+	if *i > len(w)-1 {
+		return
+	}
+	if w[*i].Read() == "#REQUIRED" {
+		*i++
+		attr.Required = true
+	}
+}
+
+// checkImplied
+func (sc *DTDScanner) checkImplied(w []*word, i *int, attr *DTD.Attribute) {
+	if *i > len(w)-1 {
+		return
+	}
+	if w[*i].Read() == "#IMPLIED" {
+		*i++
+		attr.Implied = true
+	}
+}
+
+// checkFixed
+func (sc *DTDScanner) checkFixed(w []*word, i *int, attr *DTD.Attribute) {
+	if *i > len(w)-1 {
+		return
+	}
+	if w[*i].Read() == "#FIXED" {
+		*i++
+		attr.Fixed = true
 	}
 }
 
@@ -462,57 +507,6 @@ func (sc *DTDScanner) SeekWords(s string) []string {
 	sc.Log.Debugf("seekWords FindAllString found %#v", parts)
 	return parts
 }
-
-// // extractDeclaration call the rigt sekk method depending the declaration
-// func (sc *DTDScanner) extractDeclaration(s string, declaration int) (*parsedBlock, error) {
-
-// 	if declaration == BLOCK_XML {
-// 		return sc.SeekXMLParts(s)
-// 	}
-
-// 	//sc.Log.Debugf("Block line: '%s'", s)
-// 	if declaration == BLOCK_COMMENT {
-// 		return sc.SeekCommentParts(s)
-// 	}
-
-// 	if sc.normalizeSpace(s) == "" {
-// 		return nil, errors.New("End of DTD")
-// 	}
-
-// 	return sc.SeekBlockParts(s)
-// }
-
-//SeekXMLParts extract Comment information from string using a Regex
-// func (sc *DTDScanner) SeekXMLParts(s string) (*parsedBlock, error) {
-// 	var p parsedBlock
-// 	p.blockType = "XMLDECL"
-// 	p.value = s
-// 	return &p, nil
-// }
-
-// SeekBlockParts extract DTD information from string using a Regex
-// func (sc *DTDScanner) SeekBlockParts(s string) (*parsedBlock, error) {
-
-// 	var p parsedBlock
-// 	var r string
-
-// 	sc.Log.Debugf("SeekBlockParts received %s", s)
-
-// 	r = `<\!(ENTITY|ELEMENT|ATTLIST|COMMENT|NOTATION)\s*(\%)?\s*(\S+)?\s*([^>]+)?>\s*(%[^>\s]+)?`
-
-// 	regex := regexp.MustCompile(r)
-// 	parts := regex.FindAllStringSubmatch(s, -1)
-
-// 	p.fullString = parts[0][0]
-// 	//p.blockType = parts[0][1]
-// 	p.entity = parts[0][2]
-// 	p.name = parts[0][3]
-// 	p.value = parts[0][4]
-
-// 	sc.Log.Debugf("SeekBlockParts, parsed: \n-name: %s\n-type:%s\n-entity:%s\n-value:%s, s was '%s'", p.name, p.blockType, p.entity, p.value, s)
-
-// 	return &p, nil
-// }
 
 // isQuoted returns true if a character is quote or a double quote
 func isQuoted(s string) bool {

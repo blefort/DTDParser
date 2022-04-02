@@ -18,7 +18,7 @@
           {
             "Name": "class", 
             "Default": "",
-            "Value": "\"- topic/topic concept/concept \"",    
+            "Value": "- topic/topic concept/concept",    
             "Implied": false,
             "Required": false,
             "Fixed": false,
@@ -46,7 +46,7 @@
          {
            "Name": "class", 
            "Default": "",
-           "Value": "\"- topic/topic concept/concept \"",    
+           "Value": "- topic/topic concept/concept",    
            "Implied": false,
            "Required": false,
            "Fixed": false,
@@ -190,7 +190,7 @@
          {
            "Name": "status", 
            "Default": "",
-           "Value": "\"monthly\"",
+           "Value": "monthly",
            "Implied": false,
            "Required": false,
            "Fixed": true,

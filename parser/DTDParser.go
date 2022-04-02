@@ -101,8 +101,9 @@ func (p *Parser) removeFile(filepath string) {
 func (p *Parser) Parse(filePath string) {
 	var filespaths []string
 
-	if p.filepaths == nil {
+	p.Log.Infof("parsing '%s'", filePath)
 
+	if p.filepaths == nil {
 		p.filepaths = &filespaths
 		p.Log.Debugf("Parser filepaths was nil")
 	}

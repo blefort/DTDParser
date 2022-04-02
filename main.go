@@ -21,14 +21,15 @@ import (
 // main func
 func main() {
 
+	var level zap.AtomicLevel
+
 	// Input file
 	DTDFullPath := flag.String("DTD", "", "Path to the DTD")
-	DTDOutput := flag.String("output-dtd", "", "Output path to re-generate DTD")
-	GoStructOutput := flag.String("output-struct", "", "Output path to generate go structs")
-	stripComment := flag.Bool("srip-comments", false, "Strip comments")
+	DTDOutput := flag.String("output", "", "Output path to re-generate DTD")
+	GoStructOutput := flag.String("type", "", "Output path to generate go structs")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
-	verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
-	ignoreExtRef := flag.Bool("ignore-external-ref", false, "Do not process external references")
+	verbosity := flag.String("verbosity", "", "Verbose v, vv or vvv")
+	ignoreExtRef := flag.Bool("ignore-external-dtd", false, "Do not process external DTD")
 
 	flag.Parse()
 
@@ -46,8 +47,18 @@ func main() {
 	logFile := DTDFullPathAbs + ".log"
 	os.Remove(logFile)
 
+	if *verbosity == "v" {
+		level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	} else if *verbosity == "vv" {
+		level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	} else if *verbosity == "vvv" {
+		level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	} else {
+		level = zap.NewAtomicLevelAt(zap.FatalLevel)
+	}
+
 	cfg := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level:             level,
 		Development:       false,
 		DisableCaller:     true,
 		DisableStacktrace: true,
@@ -80,27 +91,13 @@ func main() {
 	defer logger.Sync() // flushes buffer, if any
 	log := logger.Sugar()
 
-	// if *verbosity == "v" {
-	// //	log.
-	// }
-
-	// if *verbosity == "vv" {
-	// 	log.SetLevel(logrus.DebugLevel)
-	// }
-
-	// if *verbosity == "trace" {
-	// 	log.SetLevel(logrus.TraceLevel)
-	// }
-
 	// log input
-	log.Infof("Starting DTD parser")
-	log.Infof(" - Option DTD: %s", *DTDFullPath)
-	log.Infof(" - Option Output DTD: %s", *DTDOutput)
-	log.Infof(" - Option Strip Comments: %t", *stripComment)
-	log.Infof(" - Option Verbosity: %s", *verbosity)
-	log.Infof(" - Option ignore external references: %t", *ignoreExtRef)
-	//log.Infof(" - Option json log format: %s", *logFormat)
-	log.Infof("")
+	log.Warnf("Starting DTD parser")
+	log.Warnf(" - Option DTD: %s", *DTDFullPath)
+	log.Warnf(" - Option Output DTD: %s", *DTDOutput)
+	log.Warnf(" - Option Verbosity: %s", *verbosity)
+	log.Warnf(" - Option ignore external references: %t", *ignoreExtRef)
+	log.Warnf("")
 
 	if _, err := os.Stat(DTDFullPathAbs); os.IsNotExist(err) {
 		log.Fatal("Provide a valid path to a DTD file")
@@ -108,11 +105,6 @@ func main() {
 
 	// New parser
 	p := DTDParser.NewDTDParser(log)
-
-	// Configure parser
-	fmt.Printf("%v", p.Log)
-
-	p.WithComments = !*stripComment
 	p.IgnoreExtRefIssue = *ignoreExtRef
 
 	if *overwrite {
@@ -146,7 +138,7 @@ func main() {
 	p.Parse(DTDFullPathAbs)
 	t2 := time.Now()
 	diff := t2.Sub(t1)
-	fmt.Println(diff)
+	log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
 	//p.RenderDTD("")
 	//p.RenderGoStructs()
 }

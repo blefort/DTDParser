@@ -63,7 +63,6 @@ func (se *sentence) scan(s string) bool {
 	}
 
 	// compute words in sequence
-	//se.log.Warnf(s)
 	if !se.words[wordIdx].stopped() {
 		se.words[wordIdx].inSequence = se.appendTosentence
 		se.words[wordIdx].scan(s)
@@ -116,10 +115,8 @@ func (se *sentence) stopped() bool {
 }
 
 func (se *sentence) read() string {
-	//se.log.Warnf("sentence delimited by '%s' and '%s' is [%s], sequence [%s]", se.start, se.end, se.value, se.sequence)
-	//if se.stopped() {
-	se.log.Warnf("sequence is [" + se.sequence + "]")
-	//}
+	se.log.Debugf("sequence is '" + se.sequence + "'")
+
 	if len(se.value) > len(se.end) {
 		return strings.TrimSpace(se.value[0 : len(se.value)-len(se.end)])
 	}
@@ -128,13 +125,4 @@ func (se *sentence) read() string {
 
 func (se *sentence) readSequence() string {
 	return strings.Trim(se.sequence[1:len(se.sequence)-1], "!- ")
-}
-
-func (se *sentence) readAndClose() string {
-
-	var s = se.value[0 : len(se.value)-len(se.end)]
-	//se.log.Warnf("sentence delimited by '%s' and '%s' is [%s], sequence [%s]", se.start, se.end, s, se.sequence)
-	se.value = ""
-	se.sequence = ""
-	return s
 }

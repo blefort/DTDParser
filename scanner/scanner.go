@@ -7,10 +7,8 @@ package scanner
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -22,10 +20,10 @@ type DTDScanner struct {
 	Data         *bufio.Scanner
 	WithComments bool
 	Filepath     string
-	CurrentLine  int
+	CurrentLine  int // first line of a block
 	CurrentChar  int
 	CharCount    int
-	LineCount    int
+	LineCount    int  // line processed by the scanner
 	CRLF         bool // 0 linux / 1 dos
 	init         bool
 	scanResult   bool
@@ -49,7 +47,6 @@ func NewScanner(path string, s string, log *zap.SugaredLogger) *DTDScanner {
 
 // Next Move to the next Block
 func (sc *DTDScanner) NextBlock() bool {
-	fmt.Printf("%t", sc.scanResult)
 	return sc.scanResult
 }
 
@@ -59,7 +56,6 @@ func (sc *DTDScanner) next() bool {
 	sc.scanResult = sc.Data.Scan()
 	if sc.isEndOfLine() {
 		sc.LineCount++
-		sc.Log.Debugf("Line is %d", sc.LineCount)
 	}
 	return sc.scanResult
 }
@@ -70,7 +66,6 @@ func (sc *DTDScanner) Previous() bool {
 	ret := sc.Data.Scan()
 	if sc.isEndOfLine() {
 		sc.LineCount++
-		sc.Log.Debugf("Line is %d", sc.LineCount)
 	}
 	return ret
 }
@@ -78,83 +73,55 @@ func (sc *DTDScanner) Previous() bool {
 // Scan the string to find the next block
 func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
 
-	fmt.Sprintf("Scan starts")
-	t1 := time.Now().UnixMilli()
-
-	//sc.Log.Debug("Seeking for next block")
-	fmt.Sprintf("seek")
+	// seek until next DTD block
 	s := sc.seekUntilNextBlock()
 
-	//sc.Log.Warnf("block", zap.Object("Sentence", s))
-	fmt.Sprintf("seek %v", s)
-
+	// determine block type
 	sc.findDTDBlockType(s)
 
 	if s.DTDType == DTD.UNIDENTIFIED {
-		return nil, s.getWords(false), errors.New("Unidentified block")
+		return nil, s.getWords(false), fmt.Errorf("could not identify DTD block at line %d", sc.LineCount)
 	}
 
 	if s.DTDType == DTD.COMMENT {
 		comment := sc.ParseComment(s)
-		t2 := time.Now().UnixMilli()
-		diff := t2 - t1
-		sc.Log.Infof("Commment found at line '%d' in '%d'", sc.CurrentLine, diff)
 		return comment, s.getWords(false), nil
 	}
 
 	if s.DTDType == DTD.ENTITY {
 		entity := sc.ParseEntity(s)
-		t2 := time.Now().UnixMilli()
-		diff := t2 - t1
-		sc.Log.Infof("ENTITY '%s' (line %d) in '%d'", entity.GetName(), sc.CurrentLine, diff)
-		sc.Log.Warnf("Entity name", entity.Name)
-		sc.Log.Warnf("Entity value", entity.Value)
-		sc.Log.Warnf("Entity external", entity.IsExternal)
-		sc.Log.Warnf("Entity public", entity.Public)
-		sc.Log.Warnf("Entity system", entity.System)
-		sc.Log.Warnf("Entity url", entity.Url)
-		sc.Log.Warnf("Will render as", entity.Render())
 		return entity, s.getWords(false), nil
 	}
 
 	if s.DTDType == DTD.ELEMENT {
 		element := sc.ParseElement(s)
-		t2 := time.Now().UnixMilli()
-		diff := t2 - t1
-		sc.Log.Infof("ELEMENT '%s' (line %d) in '%d'", element.GetName(), sc.CurrentLine, diff)
 		return element, s.getWords(false), nil
 	}
 
 	if s.DTDType == DTD.NOTATION {
 		notation := sc.ParseNotation(s)
-		t2 := time.Now().UnixMilli()
-		diff := t2 - t1
-		sc.Log.Infof("NOTATION '%s' (line %d) in '%d'", notation.GetName(), sc.CurrentLine, diff)
 		return notation, s.getWords(false), nil
 	}
 
 	if s.DTDType == DTD.ATTLIST {
 		attlist := sc.ParseAttlist(s)
-		t2 := time.Now().UnixMilli()
-		diff := t2 - t1
-		sc.Log.Infof("ATTLIST '%s' (line %d) in '%d'", attlist.GetName(), sc.CurrentLine, diff)
 		sc.logOutputAttributes(&attlist.Attributes)
 		return attlist, s.getWords(false), nil
 	}
 
-	return nil, s.getWords(false), errors.New("Unidentified block")
+	return nil, s.getWords(false), fmt.Errorf("could not identify DTD block at line %d", sc.LineCount)
 
 }
 
-// ParseComment Parse a string and return pointer to DTD.Comment
+// ParseComment Use the information in the sentence to return a pointer to a DTD.Comment
 func (sc *DTDScanner) ParseComment(s *sentence) *DTD.Comment {
 	var c DTD.Comment
-
+	sc.Log.Info("Comment found line ", sc.CurrentLine)
 	c.Value = s.readSequence()
 	return &c
 }
 
-// ParseEntity Parse a string and return pointer to a DTD.Element
+// ParseEntity Use the information in the sentence to return a pointer to a DTD.Element
 // @ref https://www.w3.org/TR/xml11/#elemdecls
 //
 // Element Declaration
@@ -166,19 +133,17 @@ func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 
 	words := s.getWords(true)
 
-	// for i, w := range words {
-	// 	sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
-	// }
-
 	if len(words) < 2 {
-		sc.Log.Fatalf("Not enough arguments in sentence '", s.sequence, "' (count was", len(words), ")")
+		sc.Log.Errorf("not enough arguments in sentence '%s'. Count was (%d)", s.sequence, len(words))
 	}
 	e.Name = words[1].Read()
 	e.Value = words[2].Read()
+
+	sc.Log.Info("ParseElement ", e.Name)
 	return &e
 }
 
-// ParseNotation Parse a string and return pointer to a DTD.Notation
+// ParseNotation Use the information in the sentence to return a pointer to a DTD.Notation
 // @ref https://www.w3.org/TR/xml11/#Notations
 //
 // Element Declaration
@@ -193,8 +158,7 @@ func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 
 	l := len(words)
 
-	for i, w := range words {
-		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+	for _, w := range words {
 
 		if w.Read() == "PUBLIC" {
 			n.Public = true
@@ -207,6 +171,7 @@ func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 	}
 
 	n.Name = words[1].Read()
+	sc.Log.Info("ParseNotation ", n.Name)
 
 	if l > 3 && n.Public {
 		n.PublicID = words[3].Read()
@@ -223,7 +188,7 @@ func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 	return &n
 }
 
-// ParseEntity Parse a string and return pointer to a DTD.Entity
+// ParseEntity Use the information in the sentence to return a pointer to a DTD.Entity
 // @ref https://www.w3.org/TR/xml11/#sec-entity-decl
 //
 // Entity Declaration
@@ -240,9 +205,9 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	idx := 0
 	pidx := 1
 
-	for i, w := range words {
+	sc.logWords(&words)
 
-		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+	for i, w := range words {
 
 		if w.Read() == "%" {
 			e.Parameter = true
@@ -263,6 +228,7 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	}
 
 	e.Name = words[pidx].Read()
+	sc.Log.Info("ParseEntity ", e.Name)
 
 	if e.System {
 		e.Url = words[idx+1].Read()
@@ -278,40 +244,35 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	return &e
 }
 
-// ParseAttlist Parse a string and return pointer to a DTD.Attlist
+// ParseAttlist Use the information in the sentence to return a pointer to a DTD.Attlist
 //
 // [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
 // [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
 //
 func (sc *DTDScanner) ParseAttlist(s *sentence) *DTD.Attlist {
 	var attlist DTD.Attlist
+
 	words := s.getWords(true)
+	sc.logWords(&words)
 	attlist.Name = words[1].Read()
+	sc.Log.Info("ParseAttlist ", attlist.Name)
 	sc.parseAttributes(words[2:len(words)], &attlist.Attributes)
 	return &attlist
 }
 
+// parseAttributes Use the information in the sentence.words to return a pointer to *[]DTD.Attribute
 func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute) {
 
 	i := -1
 	l := len(words)
 
-	for i, w := range words {
-		sc.Log.Warnf("- " + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
-	}
+	sc.Log.Info("ParseAttributes")
 
-	// for idx, part := range parts {
-	// 	sc.Log.Debugf("part %d: %s", idx, part)
-	// }
-
-	if l == 0 {
-		//	panic("Unable to scan Attlist")
-	}
+	sc.logWords(&words)
 
 	nextWord := func(i *int, l int) bool {
 		if *i+1 < l {
 			*i++
-			sc.Log.Debugf("Next word, i: %d, %s ", *i, words[*i])
 			return true
 		}
 		return false
@@ -325,7 +286,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 
 		// reference to an entity
 		if words[i].Read()[0:1] == "%" {
-			sc.Log.Warnf("- Ref. to an entity found: %s", words[i].Read())
+			sc.Log.Debugf("- reference to an entity found: %s", words[i].Read())
 			attr.Value = words[i].Read()
 			attr.IsEntity = true
 			*attributes = append(*attributes, attr)
@@ -334,7 +295,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 
 		// // first word is always the attribute name
 		attr.Name = words[i].Read()
-		sc.Log.Warnf("Processing attribute: '%s'", attr.Name)
+		sc.Log.Debugf("processing attribute: '%s'", attr.Name)
 
 		if !nextWord(&i, l) {
 			sc.Log.Fatalf("Not enough arguments to loop through attributes i:%d", i)
@@ -345,45 +306,42 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 
 		// // Type is always in the second position
 		attr.Type = DTD.SeekAttributeType(words[i].Read())
-		sc.Log.Warnf("attribute type is %d", attr.Type)
+		sc.Log.Debugf("attribute type is %d", attr.Type)
 
 		if attr.Type == DTD.CDATA { // 20
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr, true)
 		} else if attr.Type == DTD.TOKEN_ID ||
 			attr.Type == DTD.TOKEN_IDREF ||
 			attr.Type == DTD.TOKEN_IDREFS ||
 			attr.Type == DTD.TOKEN_ENTITY ||
 			attr.Type == DTD.TOKEN_ENTITIES ||
-			attr.Type == DTD.TOKEN_NMTOKEN ||
 			attr.Type == DTD.TOKEN_NMTOKENS {
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr)
-			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr, false)
+			sc.checkDefaultValue(words, &i, &attr, true)
+		} else if attr.Type == DTD.TOKEN_NMTOKEN {
+			nextWord(&i, l)
+			sc.checkDefaultValue(words, &i, &attr, false)
 		} else if attr.Type == DTD.ENUM_NOTATION {
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr)
-			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr, false)
+			sc.checkDefaultValue(words, &i, &attr, true)
 		} else if attr.Type == DTD.ENUM_ENUM {
-
-			sc.checkDefaultValue(words, &i, &attr)
-			sc.checkDefaultValue(words, &i, &attr)
+			sc.checkDefaultValue(words, &i, &attr, false)
+			sc.checkDefaultValue(words, &i, &attr, true)
 		} else {
 			sc.Log.Fatalf("unmanaged attribute type %d", attr.Type)
 		}
 
+		sc.logAttribute(&attr)
 		*attributes = append(*attributes, attr)
-		// sc.Log.Debugf("*Attr rendered: %s", attr.Render())
-
-		// if attr.Type == 0 {
-		// 	sc.Log.Fatalf("Could not identify attribute type at line %d, name: '%s', value: '%s'", sc.LineCount, attr.Name, words[i].Read())
-		// }
 
 	}
 }
 
 // heckDefaultValue
-func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute) {
+func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute, last bool) {
 
 	ini := *i
 
@@ -391,13 +349,25 @@ func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute) 
 		return
 	}
 
+	sc.checkFixed(w, i, attr, last)
+
+	// Required and implied appears to be always the last value
 	sc.checkRequired(w, i, attr)
+	if attr.Required {
+		return
+	}
+
 	sc.checkImplied(w, i, attr)
-	sc.checkFixed(w, i, attr)
+	if attr.Implied {
+		return
+	}
 
 	if *i == ini {
 		attr.Value = w[*i].Read()
-		*i++
+
+		if last {
+			*i++
+		}
 	}
 
 }
@@ -408,7 +378,6 @@ func (sc *DTDScanner) checkRequired(w []*word, i *int, attr *DTD.Attribute) {
 		return
 	}
 	if w[*i].Read() == "#REQUIRED" {
-		*i++
 		attr.Required = true
 	}
 }
@@ -419,34 +388,21 @@ func (sc *DTDScanner) checkImplied(w []*word, i *int, attr *DTD.Attribute) {
 		return
 	}
 	if w[*i].Read() == "#IMPLIED" {
-		*i++
 		attr.Implied = true
 	}
 }
 
 // checkFixed
-func (sc *DTDScanner) checkFixed(w []*word, i *int, attr *DTD.Attribute) {
+func (sc *DTDScanner) checkFixed(w []*word, i *int, attr *DTD.Attribute, last bool) {
 	if *i > len(w)-1 {
 		return
 	}
 	if w[*i].Read() == "#FIXED" {
-		*i++
+		if last {
+			*i++
+		}
 		attr.Fixed = true
 	}
-}
-
-// output attributes in the log
-func (sc *DTDScanner) logOutputAttributes(attributes *[]DTD.Attribute) {
-	for _, attr := range *attributes {
-		sc.Log.Debugf("- Attribute: %s", attr.Render())
-	}
-}
-
-// assignIfEntityValue test if v is not public system or empty before assigning it
-func assignIfEntityValue(e *DTD.Entity, v string) {
-	//if v != "" && !isPublic(v) && !isSystem(v) {
-	//	e.Value = v
-	//}
 }
 
 // isEndOfLine Identitfy a carriage return
@@ -469,7 +425,7 @@ func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 	sentence := newsentence("<", ">", sc.Log)
 
 	sc.CurrentLine = sc.LineCount
-	sc.Log.Warnf("start scanning sentence with char '" + sc.Data.Text() + "'")
+	sc.Log.Debugf(fmt.Sprintf("start scanning sentence with char '%s'", sc.Data.Text()))
 
 	sentence.scan(sc.Data.Text())
 
@@ -483,9 +439,9 @@ func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 	}
 
 	return sentence
-
 }
 
+// findDTDBlockType Determine DTD type with the first word of the sentence
 func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 
 	words := s.getWords(true)
@@ -494,18 +450,35 @@ func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 		return
 	}
 
-	w := words[0].Read()
-
-	if len(w) > 3 && w[0:4] == "<!--" {
+	if len(words[0].Read()) > 3 && words[0].Read()[0:4] == "<!--" {
 		s.DTDType = DTD.COMMENT
-	} else if w == "<!ATTLIST" {
+	} else if words[0].Read() == "<!ATTLIST" {
 		s.DTDType = DTD.ATTLIST
-	} else if w == "<!ELEMENT" {
+	} else if words[0].Read() == "<!ELEMENT" {
 		s.DTDType = DTD.ELEMENT
-	} else if w == "<!NOTATION" {
+	} else if words[0].Read() == "<!NOTATION" {
 		s.DTDType = DTD.NOTATION
-	} else if w == "<!ENTITY" {
+	} else if words[0].Read() == "<!ENTITY" {
 		s.DTDType = DTD.ENTITY
 	}
-	sc.Log.Warnf(fmt.Sprintf("%d", s.DTDType))
+	sc.Log.Debugf(fmt.Sprintf("block type is (%d)", s.DTDType))
+}
+
+// logOutputAttributes helper function to output attributes in the log
+func (sc *DTDScanner) logAttribute(attr *DTD.Attribute) {
+	sc.Log.Infof(fmt.Sprintf(" - attribute: '%s'", attr.Render()))
+}
+
+// logOutputAttributes helper function to output attributes in the log
+func (sc *DTDScanner) logOutputAttributes(attributes *[]DTD.Attribute) {
+	for i, attr := range *attributes {
+		sc.Log.Debugf(fmt.Sprintf(" - attribute (%d): '%s'", i, attr.Render()))
+	}
+}
+
+// logWords helper function to log words
+func (sc *DTDScanner) logWords(words *[]*word) {
+	for i, w := range *words {
+		sc.Log.Debugf(fmt.Sprintf(" - word [%d] '%s'", i, w.Read()))
+	}
 }

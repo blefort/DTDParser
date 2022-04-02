@@ -29,7 +29,7 @@ func newWord(Log *zap.SugaredLogger) *word {
 
 func (w *word) scan(s string) {
 
-	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar || s == ">" {
+	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar || s == ">" || s == "\t" {
 		w.done = true
 	}
 

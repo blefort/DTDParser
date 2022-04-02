@@ -9,60 +9,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/blefort/DTDParser/DTD"
 )
-
-type parsedBlock struct {
-	id         string
-	fullString string
-	blockType  int
-	name       string
-	value      string
-	entity     bool
-	public     bool
-	system     bool
-	required   bool
-	implied    bool
-	fixed      bool
-	uri        string
-}
-
-func (p *parsedBlock) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	enc.AddString("Name", p.name)
-	enc.AddString("blockType", DTD.Translate(p.blockType))
-	if p.id != "" {
-		enc.AddString("id", p.id)
-	}
-	if p.public {
-		enc.AddBool("public", p.public)
-	}
-	if p.system {
-		enc.AddBool("system", p.system)
-	}
-	if p.required {
-		enc.AddBool("required", p.required)
-	}
-	if p.implied {
-		enc.AddBool("implied", p.implied)
-	}
-	if p.fixed {
-		enc.AddBool("fixed", p.fixed)
-	}
-	if p.value != "" {
-		enc.AddString("value", p.value)
-	}
-	if p.uri != "" {
-		enc.AddString("uri", p.uri)
-	}
-	return nil
-}
 
 // DTDScanner represents a DTD scanner
 type DTDScanner struct {
@@ -496,69 +449,6 @@ func assignIfEntityValue(e *DTD.Entity, v string) {
 	//}
 }
 
-// SeekWords Walk a string and identify every words
-func (sc *DTDScanner) SeekWords(s string) []string {
-
-	r2 := `"([^"]+)"|\((.*)\)[\+|\?|\*]?|([^\s]+)`
-
-	regex := regexp.MustCompile(r2)
-	parts := regex.FindAllString(s, -1)
-
-	sc.Log.Debugf("seekWords FindAllString found %#v", parts)
-	return parts
-}
-
-// isQuoted returns true if a character is quote or a double quote
-func isQuoted(s string) bool {
-	return s == "\"" || s == "'"
-}
-
-// checkEnumDefaultValue
-func (sc *DTDScanner) checkEnumDefaultValue(attr *DTD.Attribute, parts []string) {
-
-	//	attr.Default = sc.checkDefaultValue(parts[0])
-	sc.Log.Debugf("Enum Default Value: '%s'", attr.Default)
-}
-
-// trimQuotes Trim surrounding quotes
-func trimQuotes(s string) string {
-	if len(s) > 0 && s[0] == '"' {
-		s = s[1:]
-	}
-	if len(s) > 0 && s[len(s)-1] == '"' {
-		s = s[:len(s)-1]
-	}
-	return s
-}
-
-// IsStartChar Determine if a character is the beginning of a DTD block
-func (sc *DTDScanner) IsStartChar() bool {
-	return sc.Data.Text() == "<"
-}
-
-// SeekExportedEntity Seek an exported DTD entity
-// For example:
-//  <!ENTITY % concept-dec
-//           PUBLIC "-//OASIS//ENTITIES DITA 1.2 Concept//EN"
-//           "concept.ent">%concept-dec;
-//
-// %concept-dec means that the entity is exported
-func (sc *DTDScanner) SeekExportedEntity() string {
-	var s string
-	for sc.next() {
-		if sc.Data.Text() == ";" {
-			return s
-		}
-		s += sc.Data.Text()
-	}
-	return s
-}
-
-// isWhitespace Determine if a string is a whitespace
-func (sc *DTDScanner) isWhitespace() bool {
-	return sc.Data.Text() == " " || sc.Data.Text() == "\t" || sc.isEndOfLine()
-}
-
 // isEndOfLine Identitfy a carriage return
 func (sc *DTDScanner) isEndOfLine() bool {
 
@@ -575,8 +465,6 @@ func (sc *DTDScanner) isEndOfLine() bool {
 // seekUntilNextBlock return string until next block is found
 func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 
-	//	var s string
-	var p parsedBlock
 	//	var contentPosition int
 	sentence := newsentence("<", ">", sc.Log)
 
@@ -594,7 +482,6 @@ func (sc *DTDScanner) seekUntilNextBlock() *sentence {
 		}
 	}
 
-	p.blockType = DTD.UNIDENTIFIED
 	return sentence
 
 }
@@ -621,13 +508,4 @@ func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 		s.DTDType = DTD.ENTITY
 	}
 	sc.Log.Warnf(fmt.Sprintf("%d", s.DTDType))
-}
-
-// normalizeSpace Convert Line breaks, multiple space into a single space
-func (sc *DTDScanner) normalizeSpace(s string) string {
-	regexLineBreak := regexp.MustCompile(`(?s)(\r?\n)|\t`)
-	s1 := regexLineBreak.ReplaceAllString(s, " ")
-	space := regexp.MustCompile(`\s+|\t`)
-	nm := strings.Trim(space.ReplaceAllString(s1, " "), " ")
-	return nm
 }

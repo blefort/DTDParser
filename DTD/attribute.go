@@ -33,7 +33,10 @@ func (a *Attribute) Render() string {
 
 	s += a.Name + " "
 	s += AttributeType(a.Type) + " "
-	s += a.Value + " "
+
+	if a.Value != "" {
+		s += "\"" + a.Value + "\""
+	}
 
 	if a.Implied {
 		s += "#IMPLIED"

@@ -7,12 +7,11 @@ package DTD
 
 // Notation reprensents a notation
 type Notation struct {
-	Name   string
-	Public bool
-	System bool
-	Url    string
-	Value  string
-	ID     string
+	Name     string
+	Public   bool
+	System   bool
+	PublicID string
+	SystemID string
 }
 
 // Render an Notation
@@ -21,7 +20,16 @@ type Notation struct {
 // <!NOTATION name PUBLIC "public_ID">
 // <!NOTATION name PUBLIC "public_ID" "URI">
 func (n *Notation) Render() string {
-	return join("<!NOTATION ", n.Name, renderSystem(n.System), renderPublic(n.Public), n.ID, n.Url, n.Value, ">", "\n")
+	var public string
+	var system string
+
+	if n.PublicID != "" {
+		public = "\"" + n.PublicID + "\""
+	}
+	if n.SystemID != "" {
+		system = " \"" + n.SystemID + "\""
+	}
+	return join("<!NOTATION ", n.Name, renderSystem(n.System), renderPublic(n.Public), public, system, ">", "\n")
 }
 
 // GetName Get the name
@@ -39,7 +47,7 @@ func (n *Notation) SetExported(v bool) {
 // GetValue Get the value
 // implements IDTDBlock
 func (n *Notation) GetValue() string {
-	return n.Value
+	panic("An Notation has a PublicID or a SystemID")
 }
 
 // GetParameter return parameter for entity only

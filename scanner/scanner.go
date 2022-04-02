@@ -172,6 +172,14 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
 		return element, s.getWords(false), nil
 	}
 
+	if s.DTDType == DTD.NOTATION {
+		notation := sc.ParseNotation(s)
+		t2 := time.Now().UnixMilli()
+		diff := t2 - t1
+		sc.Log.Infof("NOTATION '%s' (line %d) in '%d'", notation.GetName(), sc.CurrentLine, diff)
+		return notation, s.getWords(false), nil
+	}
+
 	// if s.DTDType == DTD.ATTLIST {
 	// 	attlist := sc.ParseAttlist(p)
 	// 	t2 := time.Now().UnixMilli()
@@ -179,14 +187,6 @@ func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
 	// 	sc.Log.Infof("ATTLIST '%s' (line %d) in '%d'", attlist.GetName(), sc.CurrentLine, diff)
 	// 	sc.logOutputAttributes(&attlist.Attributes)
 	// 	return attlist, nil
-	// }
-
-	// if s.DTDType == DTD.NOTATION {
-	// 	notation := sc.ParseNotation(p)
-	// 	t2 := time.Now().UnixMilli()
-	// 	diff := t2 - t1
-	// 	sc.Log.Infof("NOTATION '%s' (line %d) in '%d'", notation.GetName(), sc.CurrentLine, diff)
-	// 	return notation, nil
 	// }
 
 	return nil, s.getWords(false), errors.New("Unidentified block")
@@ -213,10 +213,9 @@ func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 
 	words := s.getWords(true)
 
-	for i, w := range words {
-
-		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
-	}
+	// for i, w := range words {
+	// 	sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+	// }
 
 	if len(words) < 2 {
 		sc.Log.Fatalf("Not enough arguments in sentence '", s.sequence, "' (count was", len(words), ")")
@@ -234,13 +233,40 @@ func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 // [82]  NotationDec ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'  [VC: Unique Notation Name]
 // [83]  PublicID    ::= 'PUBLIC' S PubidLiteral
 //
-func (sc *DTDScanner) ParseNotation(p *parsedBlock) *DTD.Notation {
+func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 	var n DTD.Notation
-	n.Name = p.name
-	n.Public = p.public
-	n.System = p.system
-	n.Url = p.uri
-	n.ID = p.id
+
+	words := s.getWords(true)
+
+	l := len(words)
+
+	for i, w := range words {
+		sc.Log.Warnf("-" + fmt.Sprintf("%d", i) + " [" + w.Read() + "] ")
+
+		if w.Read() == "PUBLIC" {
+			n.Public = true
+		}
+
+		if w.Read() == "SYSTEM" {
+			n.System = true
+		}
+
+	}
+
+	n.Name = words[1].Read()
+
+	if l > 3 && n.Public {
+		n.PublicID = words[3].Read()
+	}
+
+	if l > 3 && n.System {
+		n.SystemID = words[3].Read()
+	}
+
+	if l > 4 {
+		n.SystemID = words[4].Read()
+	}
+
 	return &n
 }
 

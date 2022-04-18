@@ -56,31 +56,3 @@ func testElementDTD(t *testing.T, path string, recreate bool) {
 	}
 	t.Run("Render DTD", render(p))
 }
-
-// TestElementPanic Test func that should never be called
-func TestElementPanic(t *testing.T) {
-	assertPanic(t, ElementExported)
-	assertPanic(t, ElementGetParameter)
-	assertPanic(t, ElementGetUrl)
-}
-
-// ElementExported() Helper to test DTD.Element.GetExported()
-func ElementExported() {
-	var e DTD.Element
-	ret := e.GetExported()
-	log.Debugf("ElementExported( return %t", ret)
-}
-
-// ElementExported() Helper to test DTD.Element.GetParameter()
-func ElementGetParameter() {
-	var e DTD.Element
-	ret := e.GetParameter()
-	log.Debugf("ElementExported( return %t", ret)
-}
-
-// ElementExported() Helper to test DTD.Element.GetUrl()
-func ElementGetUrl() {
-	var e DTD.Element
-	ret := e.GetUrl()
-	log.Debugf("ElementUrl( return %s", ret)
-}

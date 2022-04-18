@@ -35,27 +35,10 @@ func (c *Comment) GetValue() string {
 	return c.Value
 }
 
-// GetParameter return parameter for entity only
-// implements IDTDBlock
-func (c *Comment) GetParameter() bool {
-	panic("Comment have no Parameter")
-}
-
-// GetUrl the entity url
-// implements IDTDBlock
-func (c *Comment) GetUrl() string {
-	panic("GetUrl not allowed for this block")
-}
-
-// GetExported Unused, tells if the comment was exported
-// implements IDTDBlock
-func (c *Comment) GetExported() bool {
-	panic("Comment are not exported")
-}
-
-// GetAttributes return a list of attributes
-func (c *Comment) GetAttributes() []Attribute {
-	panic("Comment have no attributes")
+// GetExtra Get extrainformation
+func (c *Comment) GetExtra() *DTDExtra {
+	var extra DTDExtra
+	return &extra
 }
 
 // IsCommentType check if the interface is a DTD.Comment

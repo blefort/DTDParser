@@ -70,33 +70,21 @@ func (e *Entity) SetExported(v bool) {
 	e.Exported = v
 }
 
-// GetExported Tells if the entity was exported
-// implements IDTDBlock
-func (e *Entity) GetExported() bool {
-	return e.Exported
-}
-
 // GetValue Get the value
 // implements IDTDBlock
 func (e *Entity) GetValue() string {
 	return e.Value
 }
 
-// GetParameter return parameter for entity only
-// implements IDTDBlock
-func (e *Entity) GetParameter() bool {
-	return e.Parameter
-}
-
-// GetUrl the entity url
-// implements IDTDBlock
-func (e *Entity) GetUrl() string {
-	return e.Url
-}
-
-// GetAttributes return a list of attributes
-func (e *Entity) GetAttributes() []Attribute {
-	panic("Comment have no attributes")
+// GetExtra Get extrainformation
+func (e *Entity) GetExtra() *DTDExtra {
+	var extra DTDExtra
+	extra.IsExported = e.Exported
+	extra.IsParameter = e.Parameter
+	extra.IsPublic = e.Public
+	extra.IsSystem = e.System
+	extra.Url = e.Url
+	return &extra
 }
 
 // IsEntityType check if the interface is a DTD.ExportedEntity

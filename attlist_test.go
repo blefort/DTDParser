@@ -114,30 +114,9 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 	t.Run("Render DTD", render(p))
 }
 
-// TestAttlistPanic Test func that should never be called
-func TestAttlistPanic(t *testing.T) {
-	assertPanic(t, AttlistExported)
-	assertPanic(t, AttlistGetParameter)
-	assertPanic(t, AttlistGetUrl)
-}
-
 // AttlistExported() Helper to test DTD.Attlist.GetExported()
 func AttlistExported() {
 	var a DTD.Attlist
 	ret := a.GetExported()
 	log.Debugf("AttlistExported( return %t", ret)
-}
-
-// AttlistExported() Helper to test DTD.Attlist.GetParameter()
-func AttlistGetParameter() {
-	var a DTD.Attlist
-	ret := a.GetParameter()
-	log.Debugf("AttlistExported( return %t", ret)
-}
-
-// AttlistGetUrl() Helper to test DTD.Attlist.GetUrl()
-func AttlistGetUrl() {
-	var a DTD.Attlist
-	ret := a.GetUrl()
-	log.Debugf("AttlistUrl( return %s", ret)
 }

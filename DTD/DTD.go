@@ -49,16 +49,24 @@ const (
 	ENUM_ENUM     = 38
 )
 
+type DTDExtra struct {
+	IsPublic    bool
+	IsSystem    bool
+	IsExported  bool
+	IsParameter bool
+	Attributes  []Attribute
+	Url         string
+	PublicID    string
+	SystemID    string
+}
+
 // IDTDBlock Interface for DTD block
 type IDTDBlock interface {
 	GetName() string
 	Render() string
 	SetExported(v bool)
-	GetExported() bool
 	GetValue() string
-	GetParameter() bool
-	GetAttributes() []Attribute
-	GetUrl() string
+	GetExtra() *DTDExtra
 }
 
 // Helper to join strings

@@ -43,27 +43,17 @@ func (a *Attlist) GetValue() string {
 	return a.Value
 }
 
-// GetParameter return parameter for entity only
-// implements IDTDBlock
-func (a *Attlist) GetParameter() bool {
-	panic("Attlist have no Parameter")
-}
-
-// GetUrl the entity url
-// implements IDTDBlock
-func (a *Attlist) GetUrl() string {
-	panic("GetUrl not allowed for this block")
-}
-
 // GetExported Unused, tells if the comment was exported
 // implements IDTDBlock
 func (a *Attlist) GetExported() bool {
 	panic("Attlist are not exported")
 }
 
-// GetAttributes return a list of attributes
-func (a *Attlist) GetAttributes() []Attribute {
-	return a.Attributes
+// GetExtra Get extrainformation
+func (a *Attlist) GetExtra() *DTDExtra {
+	var extra DTDExtra
+	extra.Attributes = a.Attributes
+	return &extra
 }
 
 // IsAttlistType check if the interface is a DTD.Comment

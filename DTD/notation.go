@@ -29,7 +29,7 @@ func (n *Notation) Render() string {
 	if n.SystemID != "" {
 		system = " \"" + n.SystemID + "\""
 	}
-	return join("<!NOTATION ", n.Name, renderSystem(n.System), renderPublic(n.Public), public, system, ">", "\n")
+	return join("<!NOTATION ", n.Name, renderSystem(n.System), renderPublic(n.Public), public, system, ">")
 }
 
 // GetName Get the name
@@ -50,27 +50,14 @@ func (n *Notation) GetValue() string {
 	panic("An Notation has a PublicID or a SystemID")
 }
 
-// GetParameter return parameter for entity only
-// implements IDTDBlock
-func (n *Notation) GetParameter() bool {
-	panic("Notation have no Parameter")
-}
-
-// GetUrl the entity url
-// implements IDTDBlock
-func (n *Notation) GetUrl() string {
-	panic("GetUrl not allowed for this block")
-}
-
-// GetExported Unused, tells if the comment was exported
-// implements IDTDBlock
-func (n *Notation) GetExported() bool {
-	panic("Notation are not exported")
-}
-
-// GetAttributes return a list of attributes
-func (n *Notation) GetAttributes() []Attribute {
-	panic("Notation have not attributes")
+// GetExtra Get extrainformation
+func (n *Notation) GetExtra() *DTDExtra {
+	var extra DTDExtra
+	extra.IsPublic = n.Public
+	extra.IsSystem = n.System
+	extra.PublicID = n.PublicID
+	extra.SystemID = n.SystemID
+	return &extra
 }
 
 // IsNotationType check if the interface is a DTD.Notation

@@ -2,8 +2,6 @@ package main
 
 import (
 	"testing"
-
-	"github.com/blefort/DTDParser/DTD"
 )
 
 // CommentTestResult struct to test comment
@@ -65,32 +63,4 @@ func testCommentDTD(t *testing.T, path string, recreate bool) {
 	}
 
 	t.Run("Render DTD", render(p))
-}
-
-// TestCommentPanic Test func that should never be called
-func TestCommentPanic(t *testing.T) {
-	assertPanic(t, CommentExported)
-	assertPanic(t, CommentGetParameter)
-	assertPanic(t, CommentGetUrl)
-}
-
-// CommentExported() Helper to test DTD.comment.GetExported()
-func CommentExported() {
-	var c DTD.Comment
-	ret := c.GetExported()
-	log.Debugf("CommentExported( return %t", ret)
-}
-
-// CommentExported() Helper to test DTD.comment.GetParameter()
-func CommentGetParameter() {
-	var c DTD.Comment
-	ret := c.GetParameter()
-	log.Debugf("CommentExported( return %t", ret)
-}
-
-//  CommentGetUrl() Helper to test DTD.comment.GetUrl()
-func CommentGetUrl() {
-	var c DTD.Comment
-	ret := c.GetUrl()
-	log.Debugf("CommentUrl( return %s", ret)
 }

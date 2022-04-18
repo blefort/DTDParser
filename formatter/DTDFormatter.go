@@ -54,7 +54,9 @@ func (ft *DTDFormatter) Render(collection *[]DTD.IDTDBlock, path string) {
 func (ft *DTDFormatter) RenderAttlist(b DTD.IDTDBlock) string {
 	attributes := "\n"
 
-	for _, attr := range b.GetAttributes() {
+	extra := b.GetExtra()
+
+	for _, attr := range extra.Attributes {
 		attributes += ft.RenderAttribute(attr)
 	}
 
@@ -78,27 +80,30 @@ func (ft *DTDFormatter) RenderEntity(b DTD.IDTDBlock) string {
 	var exportedStr string
 	var url string
 
-	if b.GetParameter() {
+	extra := b.GetExtra()
+
+	if extra.IsParameter {
 		m = " % "
 	} else {
 		m = " "
 	}
 
-	// if e.Public {
-	// 	eType += " PUBLIC "
-	// } else if e.System {
-	// 	eType += " SYSTEM "
-	// }
+	if extra.IsPublic {
+		eType += " PUBLIC "
+	}
+	if extra.IsSystem {
+		eType += " SYSTEM "
+	}
 
-	if b.GetExported() {
+	if extra.IsExported {
 		exportedStr = join("\n%", b.GetName(), ";")
 	}
 
-	// if e.Url != "" {
-	// 	url = "\"" + e.Url + "\""
-	// }
+	if extra.Url != "" {
+		url = renderQuoted(extra.Url)
+	}
 
-	return join("<!ENTITY", m, b.GetName(), " ", eType, "\"\n", ft.delimitter, b.GetValue(), "\n\"", url, ">", exportedStr, "\n")
+	return join("<!ENTITY", m, b.GetName(), " ", eType, "\"\n", ft.delimitter, b.GetValue(), "\n\"", url, ">", exportedStr)
 }
 
 // RenderAttribute Render an attribute
@@ -115,8 +120,10 @@ func (ft *DTDFormatter) RenderAttribute(a DTD.Attribute) string {
 		s += " #FIXED "
 	}
 
-	if a.Value != "" && !a.IsEntity {
-		s += "\"" + a.Value + "\""
+	if a.Value != "" && !a.IsEntity && a.Fixed {
+		s += renderQuoted(a.Value)
+	} else if a.Value != "" && !a.IsEntity && !a.Fixed {
+		s += a.Value
 	} else if a.Value != "" && a.IsEntity {
 		s += a.Value
 	}

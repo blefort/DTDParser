@@ -16,13 +16,13 @@ type Attlist struct {
 // Render an Attlist
 // implements IDTDBlock
 func (a *Attlist) Render() string {
-	attributes := ""
+	attributes := "\n"
 
 	for _, attr := range a.Attributes {
 		attributes += attr.Render()
 	}
 
-	return join("<!ATTLIST ", a.Name, " ", attributes, ">")
+	return join("<!ATTLIST ", a.Name, " ", attributes, ">\n")
 }
 
 // GetName Get the name
@@ -59,6 +59,11 @@ func (a *Attlist) GetUrl() string {
 // implements IDTDBlock
 func (a *Attlist) GetExported() bool {
 	panic("Attlist are not exported")
+}
+
+// GetAttributes return a list of attributes
+func (a *Attlist) GetAttributes() []Attribute {
+	return a.Attributes
 }
 
 // IsAttlistType check if the interface is a DTD.Comment

@@ -25,32 +25,41 @@ type Attribute struct {
 
 // Render an Attribute
 func (a *Attribute) Render() string {
-	s := ""
+	s := "\t"
 
-	if len(s) > 0 {
-		return s
+	if a.Name != "" {
+		s += a.Name + "\t"
 	}
 
-	s += a.Name + " "
 	s += AttributeType(a.Type) + " "
 
-	if a.Value != "" {
+	if a.Fixed {
+		s += " #FIXED "
+	}
+
+	if a.Value != "" && !a.IsEntity {
 		s += "\"" + a.Value + "\""
+	} else if a.Value != "" && a.IsEntity {
+		s += a.Value
 	}
 
 	if a.Implied {
-		s += "#IMPLIED"
+		s += " #IMPLIED "
 	}
 
 	if a.Required {
-		s += "#REQUIRED"
+		s += " #REQUIRED "
 	}
 
-	if a.Fixed {
-		s += "#FIXED"
-	}
+	s += "\n"
 
 	return s
+}
+
+// GetExported Unused, tells if the comment was exported
+// implements IDTDBlock
+func (a *Attribute) GetName() string {
+	return "attribute"
 }
 
 // SeekAttributeType Attempt to identify attribute type

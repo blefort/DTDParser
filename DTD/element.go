@@ -53,6 +53,11 @@ func (e *Element) GetExported() bool {
 	panic("Element are not exported")
 }
 
+// GetAttributes return a list of attributes
+func (e *Element) GetAttributes() []Attribute {
+	panic("Comment have no attributes")
+}
+
 // IsElementType check if the interface is a DTD.Element
 func IsElementType(i interface{}) bool {
 	switch i.(type) {

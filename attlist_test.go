@@ -30,7 +30,7 @@ func TestParseAttlistBlock(t *testing.T) {
 
 	// - load the generated DTD
 	// - compare it to data stored in a json file
-	testAttlistDTD(t, "tmp/attlist.dtd", false)
+	//	testAttlistDTD(t, "tmp/attlist.dtd", false)
 }
 
 // testAttlistDTD main testing func for attlist
@@ -68,7 +68,7 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 			t.Errorf("Attlist: Not attribute definition found in '%#v'", AttlistBlock)
 		}
 
-		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes), test))
+		t.Run("Attlist: Check Attributes Count", checkIntValue(len(AttlistBlock.Attributes), len(test.Attributes), AttlistBlock, test))
 
 		for attrID, attr := range AttlistBlock.Attributes {
 

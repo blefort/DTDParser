@@ -10,7 +10,6 @@ package DTDParser
 // https://bp.Log.gopheracademy.com/advent-2014/parsers-lexers/
 //
 import (
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -20,6 +19,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/blefort/DTDParser/DTD"
+	"github.com/blefort/DTDParser/formatter"
+
 	"github.com/blefort/DTDParser/scanner"
 )
 
@@ -242,18 +243,15 @@ func (p *Parser) RenderDTD(parentDir string) {
 
 	p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
 
-	// export every blocks
-	for _, block := range p.Collection {
-		p.Log.Debugf("Exporting block: %#v ", block)
-		c := block.Render() + "\n"
-		writeToFile(finalPath, c)
-	}
+	f := formatter.NewDTDFormatter(p.Log)
+	f.Render(&p.Collection, finalPath)
 
 	// process children parsers
-	for idx, parser := range p.parsers {
-		p.Log.Warnf("Render DTD's child '%d/%d'", idx+1, len(p.parsers))
-		parser.RenderDTD(parentDir)
-	}
+	//for idx, parser := range p.parsers {
+	//p.Log.Warnf("Render DTD's child '%d/%d'", idx+1, len(p.parsers))
+	//	parser.RenderDTD(parentDir)
+	//}
+
 }
 
 // RenderGoStructs Render a collection to a or a file containing go structs
@@ -313,24 +311,6 @@ func (p *Parser) determineFinalDTDPath(parentDir string, i string) string {
 	p.Log.Debugf("finalPath %s", finalPath)
 
 	return finalPath
-}
-
-// writeToFile write to a DTD file
-func writeToFile(filepath string, s string) error {
-	f, err := os.OpenFile(filepath, os.O_APPEND|os.O_WRONLY, 0700)
-
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = io.WriteString(f, s)
-
-	if err != nil {
-		return err
-	}
-
-	return f.Sync()
 }
 
 // commonPrefix Given a slice of path (String) find the common shared directory path

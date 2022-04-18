@@ -53,6 +53,11 @@ func (e *ExportedEntity) GetExported() bool {
 	panic("ExportedEntity are not exported")
 }
 
+// GetAttributes return a list of attributes
+func (e *ExportedEntity) GetAttributes() []Attribute {
+	panic("Comment have no attributes")
+}
+
 // IsExportedEntityType check if the interface is a DTD.ExportedEntity
 func IsExportedEntityType(i interface{}) bool {
 	switch i.(type) {

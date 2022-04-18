@@ -12,3 +12,9 @@
 <!ATTLIST task status NMTOKEN #FIXED "monthly">
 <!ATTLIST code lang NOTATION (vrml) #REQUIRED>
 <!ATTLIST task status (important|normal) #REQUIRED>
+<!ATTLIST segmentedlist
+	xmlns	CDATA	#FIXED	"http://docbook.org/ns/docbook"
+	role	CDATA	#IMPLIED
+	%db.common.attributes;
+	%db.common.linking.attributes;
+>

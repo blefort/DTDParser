@@ -68,6 +68,11 @@ func (n *Notation) GetExported() bool {
 	panic("Notation are not exported")
 }
 
+// GetAttributes return a list of attributes
+func (n *Notation) GetAttributes() []Attribute {
+	panic("Notation have not attributes")
+}
+
 // IsNotationType check if the interface is a DTD.Notation
 func IsNotationType(i interface{}) bool {
 	switch i.(type) {

@@ -139,6 +139,6 @@ func main() {
 	t2 := time.Now()
 	diff := t2.Sub(t1)
 	log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
-	//p.RenderDTD("")
+	p.RenderDTD("")
 	//p.RenderGoStructs()
 }

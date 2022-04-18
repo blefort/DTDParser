@@ -57,6 +57,7 @@ type IDTDBlock interface {
 	GetExported() bool
 	GetValue() string
 	GetParameter() bool
+	GetAttributes() []Attribute
 	GetUrl() string
 }
 
@@ -89,14 +90,6 @@ func Translate(i int) string {
 	default:
 		panic("Unknown type" + string(i) + " requested")
 	}
-}
-
-// printQuoted print the value with double quote if not empty
-func renderQuoted(s string) string {
-	if s == "" {
-		return ""
-	}
-	return "\"" + s + "\""
 }
 
 // renderSystem Render SYSTEM NOTATION

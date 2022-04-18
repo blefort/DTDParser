@@ -55,7 +55,7 @@ func (e Entity) Render() string {
 		url = "\"" + e.Url + "\""
 	}
 
-	return join("<!ENTITY", m, e.Name, " ", eType, "\"", e.Value, "\"", url, ">", exportedStr, "\n")
+	return join("<!ENTITY", m, e.Name, " ", eType, "\"", e.Value, "\"", url, "\n>", exportedStr, "\n")
 }
 
 // GetName Get the name
@@ -92,6 +92,11 @@ func (e *Entity) GetParameter() bool {
 // implements IDTDBlock
 func (e *Entity) GetUrl() string {
 	return e.Url
+}
+
+// GetAttributes return a list of attributes
+func (e *Entity) GetAttributes() []Attribute {
+	panic("Comment have no attributes")
 }
 
 // IsEntityType check if the interface is a DTD.ExportedEntity

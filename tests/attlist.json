@@ -13,7 +13,7 @@
             "Implied": false,
             "Required": false,
             "Fixed": false,
-            "Entities": []
+            "isEntity": false
           },
           {
             "Name": "class", 
@@ -22,7 +22,7 @@
             "Implied": false,
             "Required": false,
             "Fixed": false,
-            "Entities": []
+            "isEntity": false
           }
        ]
     },
@@ -50,7 +50,7 @@
            "Implied": false,
            "Required": false,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -68,7 +68,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -86,7 +86,7 @@
             "Implied": false,
             "Required": true,
             "Fixed": false,
-            "Entities": []
+            "isEntity": false
           }
       ]
    },
@@ -104,7 +104,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -122,7 +122,7 @@
            "Implied": true,
            "Required": false,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -140,7 +140,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -158,7 +158,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -176,7 +176,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -194,7 +194,7 @@
            "Implied": false,
            "Required": false,
            "Fixed": true,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -212,7 +212,7 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
       ]
    },
@@ -230,8 +230,53 @@
            "Implied": false,
            "Required": true,
            "Fixed": false,
-           "Entities": []
+           "isEntity": false
          }
+      ]
+   },
+   {
+      "Parameter":false,
+      "Name":"segmentedlist",
+      "Value": "",
+      "Url": "",
+      "Exported": false,
+      "Attributes": [
+         {
+           "Name": "xmlns", 
+           "Default": "",
+           "Value": "http://docbook.org/ns/docbook",
+           "Implied": false,
+           "Required": false,
+           "Fixed": true,
+           "isEntity": false
+         },
+         {
+            "Name": "role", 
+            "Default": "",
+            "Value": "",
+            "Implied": true,
+            "Required": false,
+            "Fixed": false,
+            "isEntity": false
+          },
+          {
+            "Name": "", 
+            "Default": "",
+            "Value": "%db.common.attributes;",
+            "Implied": false,
+            "Required": false,
+            "Fixed": false,
+            "isEntity": true
+          },
+          {
+            "Name": "", 
+            "Default": "",
+            "Value": "%db.common.linking.attributes;",
+            "Implied": false,
+            "Required": false,
+            "Fixed": false,
+            "isEntity": true
+          }
       ]
    }
  ]

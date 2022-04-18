@@ -22,13 +22,27 @@ var log *zap.SugaredLogger
 // TestMain Test Initialization
 func TestMain(m *testing.M) {
 
-	//verbosity := flag.String("verbose", "v", "Verbose v, vv or trace")
+	var level zap.AtomicLevel
+
+	verbosity := flag.String("verbose", "v", "Verbose v, vv or vvv")
 	overwriteF := flag.Bool("overwrite", false, "Overwrite output file")
+
+	if *verbosity == "v" {
+		level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	} else if *verbosity == "vv" {
+		level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	} else if *verbosity == "vvv" {
+		level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	} else {
+		level = zap.NewAtomicLevelAt(zap.FatalLevel)
+	}
+
+	level = zap.NewAtomicLevelAt(zap.DebugLevel)
 
 	flag.Parse()
 
 	cfg := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
+		Level:             level,
 		Development:       false,
 		DisableCaller:     true,
 		DisableStacktrace: true,
@@ -117,7 +131,6 @@ func render(p *DTDParser.Parser) func(*testing.T) {
 // checkStrValue Check if the block found from the parser has the expected value
 func checkStrValue(a string, b string, i interface{}, f interface{}) func(*testing.T) {
 	return func(t *testing.T) {
-		log.Debugf("Received string value, '%s' to be compared to expected value '%s'", a, b)
 		if a != b {
 			ac := strings.ReplaceAll(a, "\n", "\\n")
 			bc := strings.ReplaceAll(b, "\n", "\\n")
@@ -129,7 +142,6 @@ func checkStrValue(a string, b string, i interface{}, f interface{}) func(*testi
 // checkBoolValue Check if the block found from the parser has the expected value
 func checkBoolValue(a bool, b bool, i interface{}, f interface{}) func(*testing.T) {
 	return func(t *testing.T) {
-		log.Debugf("Received bool value, '%t' to be compared to expected value '%t'", a, b)
 		if a != b {
 			t.Errorf("Received wrong bool value, '%t' instead of '%t' - %+v - %+v", a, b, i, f)
 		}
@@ -137,11 +149,10 @@ func checkBoolValue(a bool, b bool, i interface{}, f interface{}) func(*testing.
 }
 
 // checkIntValue Check if the block found from the parser has the expected value
-func checkIntValue(a int, b int, i interface{}) func(*testing.T) {
+func checkIntValue(a int, b int, i interface{}, f interface{}) func(*testing.T) {
 	return func(t *testing.T) {
-		log.Debugf("Received int value, '%d' to be compared to expected value '%d'", a, b)
 		if a != b {
-			t.Errorf("Received wrong int value, '%d' instead of '%d'- %+v", a, b, i)
+			t.Errorf("Received wrong int value, '%d' instead of '%d'- %+v- %+v", a, b, i, f)
 		}
 	}
 }

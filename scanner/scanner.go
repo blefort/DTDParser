@@ -132,12 +132,16 @@ func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 	var e DTD.Element
 
 	words := s.getWords(true)
+	l := len(words)
 
 	if len(words) < 2 {
 		sc.Log.Errorf("not enough arguments in sentence '%s'. Count was (%d)", s.sequence, len(words))
 	}
 	e.Name = words[1].Read()
-	e.Value = words[2].Read()
+
+	for i := 2; i < l; i++ {
+		e.Value = e.Value + " " + words[i].Read()
+	}
 
 	sc.Log.Info("ParseElement ", e.Name)
 	return &e
@@ -273,6 +277,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 	nextWord := func(i *int, l int) bool {
 		if *i+1 < l {
 			*i++
+			sc.Log.Debugf("i: %d", *i)
 			return true
 		}
 		return false
@@ -283,7 +288,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 		var attr DTD.Attribute
 
 		// instruction varies depending the type, we don't know in advance
-
+		sc.Log.Debugf("Processing word: %s", words[i].Read())
 		// reference to an entity
 		if words[i].Read()[0:1] == "%" {
 			sc.Log.Debugf("- reference to an entity found: %s", words[i].Read())
@@ -310,7 +315,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 
 		if attr.Type == DTD.CDATA { // 20
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr, true)
+			sc.checkDefaultValue(words, &i, &attr)
 		} else if attr.Type == DTD.TOKEN_ID ||
 			attr.Type == DTD.TOKEN_IDREF ||
 			attr.Type == DTD.TOKEN_IDREFS ||
@@ -318,18 +323,15 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 			attr.Type == DTD.TOKEN_ENTITIES ||
 			attr.Type == DTD.TOKEN_NMTOKENS {
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr, false)
-			sc.checkDefaultValue(words, &i, &attr, true)
+			sc.checkDefaultValue(words, &i, &attr)
 		} else if attr.Type == DTD.TOKEN_NMTOKEN {
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr, false)
+			sc.checkDefaultValue(words, &i, &attr)
 		} else if attr.Type == DTD.ENUM_NOTATION {
 			nextWord(&i, l)
-			sc.checkDefaultValue(words, &i, &attr, false)
-			sc.checkDefaultValue(words, &i, &attr, true)
+			sc.checkDefaultValue(words, &i, &attr)
 		} else if attr.Type == DTD.ENUM_ENUM {
-			sc.checkDefaultValue(words, &i, &attr, false)
-			sc.checkDefaultValue(words, &i, &attr, true)
+			sc.checkDefaultValue(words, &i, &attr)
 		} else {
 			sc.Log.Fatalf("unmanaged attribute type %d", attr.Type)
 		}
@@ -341,15 +343,19 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 }
 
 // heckDefaultValue
-func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute, last bool) {
-
-	ini := *i
+func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute) {
 
 	if *i > len(w)-1 {
 		return
 	}
 
-	sc.checkFixed(w, i, attr, last)
+	sc.checkFixed(w, i, attr)
+
+	if attr.Fixed {
+		attr.Value = w[*i].Read()
+		sc.Log.Debugf("Attribute value is %s", attr.Value)
+		return
+	}
 
 	// Required and implied appears to be always the last value
 	sc.checkRequired(w, i, attr)
@@ -362,12 +368,15 @@ func (sc *DTDScanner) checkDefaultValue(w []*word, i *int, attr *DTD.Attribute, 
 		return
 	}
 
-	if *i == ini {
+	if !attr.Fixed && !attr.Required && !attr.Implied {
 		attr.Value = w[*i].Read()
+		sc.Log.Debugf("Attribute value is %s", attr.Value)
+		*i++
+	}
 
-		if last {
-			*i++
-		}
+	if *i < len(w) {
+		sc.Log.Debugf("Second round")
+		sc.checkDefaultValue(w, i, attr)
 	}
 
 }
@@ -379,6 +388,7 @@ func (sc *DTDScanner) checkRequired(w []*word, i *int, attr *DTD.Attribute) {
 	}
 	if w[*i].Read() == "#REQUIRED" {
 		attr.Required = true
+		sc.Log.Debug("REQUIRED Detected")
 	}
 }
 
@@ -389,19 +399,19 @@ func (sc *DTDScanner) checkImplied(w []*word, i *int, attr *DTD.Attribute) {
 	}
 	if w[*i].Read() == "#IMPLIED" {
 		attr.Implied = true
+		sc.Log.Debug("IMPLIED Detected")
 	}
 }
 
 // checkFixed
-func (sc *DTDScanner) checkFixed(w []*word, i *int, attr *DTD.Attribute, last bool) {
+func (sc *DTDScanner) checkFixed(w []*word, i *int, attr *DTD.Attribute) {
 	if *i > len(w)-1 {
 		return
 	}
 	if w[*i].Read() == "#FIXED" {
-		if last {
-			*i++
-		}
+		*i++
 		attr.Fixed = true
+		sc.Log.Debug("FIXED Detected")
 	}
 }
 

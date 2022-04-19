@@ -2,14 +2,14 @@
 
 # A DTD Parser 
 
-Exploring Go language in a DTD parser.
+Exploring Go language in a DTD parser. This is a personal project, I do it when I have time, if you interest in it, feel free to open an issue.
 The goal of the project is to parse DTD and generate Structs to be used in others Go programs.
 
 # Roadmap
 
-* [X] Parse DTD and generate corresponding structs in memory - Alpha version
-* [X] Regenerate DTD - Alpha version
-* [ ] Generate Structs to be used in other programs using Go prepare
+* [alpha] Parse DTD and generate corresponding structs in memory
+* [alpha] Regenerate DTD - Alpha version
+* [wip] Generate Structs to be used in other programs using Go prepare
 * [ ] DTD Validation
    * [X] Missing external DTD
 

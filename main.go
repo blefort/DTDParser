@@ -27,6 +27,8 @@ func main() {
 	DTDFullPath := flag.String("DTD", "", "Path to the DTD")
 	DTDOutput := flag.String("output", "", "Output path to re-generate DTD")
 	GoStructOutput := flag.String("type", "", "Output path to generate go structs")
+	formatter := flag.String("format", "go", "Choose the output format (go, DTD) ")
+	packageName := flag.String("package", "", "Package name")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
 	verbosity := flag.String("verbosity", "", "Verbose v, vv or vvv")
 	ignoreExtRef := flag.Bool("ignore-external-dtd", false, "Do not process external DTD")
@@ -36,6 +38,10 @@ func main() {
 	// Process DTD
 	if *DTDFullPath == "" {
 		panic("Please provide a DTD")
+	}
+
+	if *formatter == "go" && *packageName == "" {
+		panic("Please provide a package name")
 	}
 
 	DTDFullPathAbs, err0 := filepath.Abs(*DTDFullPath)
@@ -95,8 +101,10 @@ func main() {
 	log.Warnf("Starting DTD parser")
 	log.Warnf(" - Option DTD: %s", *DTDFullPath)
 	log.Warnf(" - Option Output DTD: %s", *DTDOutput)
+	log.Warnf(" - Option Formater: %s", *formatter)
 	log.Warnf(" - Option Verbosity: %s", *verbosity)
 	log.Warnf(" - Option ignore external references: %t", *ignoreExtRef)
+
 	log.Warnf("")
 
 	if _, err := os.Stat(DTDFullPathAbs); os.IsNotExist(err) {
@@ -106,6 +114,8 @@ func main() {
 	// New parser
 	p := DTDParser.NewDTDParser(log)
 	p.IgnoreExtRefIssue = *ignoreExtRef
+	p.SetFormatter(*formatter)
+	p.Package = *packageName
 
 	if *overwrite {
 		p.Overwrite = true
@@ -134,11 +144,10 @@ func main() {
 	}
 
 	// Parse & render
-	t1 := time.Now()
+	t1 := time.Now().Unix()
 	p.Parse(DTDFullPathAbs)
-	t2 := time.Now()
-	diff := t2.Sub(t1)
+	t2 := time.Now().Unix()
+	diff := t2 - t1
 	log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
-	p.RenderDTD("")
-	//p.RenderGoStructs()
+	p.Render("")
 }

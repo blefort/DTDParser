@@ -33,10 +33,12 @@ type Parser struct {
 	Collection        []DTD.IDTDBlock
 	parsers           []Parser
 	filepaths         *[]string
+	formatter         string
 	outputDirPath     string
 	outputStructPath  string
 	Overwrite         bool
 	Log               *zap.SugaredLogger
+	Package           string
 }
 
 // NewDTDParser returns a new DTD parser
@@ -44,6 +46,18 @@ func NewDTDParser(Log *zap.SugaredLogger) *Parser {
 	p := Parser{}
 	p.Log = Log
 	return &p
+}
+
+// SetFormatter Setter for formatter
+func (p *Parser) SetFormatter(s string) {
+
+	for _, f := range formatter.AvailaibleFormatters() {
+		if f == s {
+			p.formatter = s
+			return
+		}
+	}
+	panic("Formatter " + s + " is not defined")
 }
 
 // SetOutputPath set the output path of the DTD
@@ -217,7 +231,19 @@ func (p *Parser) SetExportEntity(name string) {
 }
 
 // RenderDTD Render a collection to a or a set of DTD files
-func (p *Parser) RenderDTD(parentDir string) {
+func (p *Parser) Render(parentDir string) {
+
+	switch p.formatter {
+	case "DTD":
+		p.renderDTD(parentDir)
+
+	case "go":
+		p.renderGoStructs(parentDir, p.Package)
+	}
+}
+
+// RenderDTD Render a collection to a or a set of DTD files
+func (p *Parser) renderDTD(parentDir string) {
 
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory
@@ -255,9 +281,9 @@ func (p *Parser) RenderDTD(parentDir string) {
 }
 
 // RenderGoStructs Render a collection to a or a file containing go structs
-func (p *Parser) RenderGoStructs() {
+func (p *Parser) renderGoStructs(parentDir string, packageName string) {
 
-	finalPath := p.outputStructPath + "/structs.go"
+	finalPath := p.determineFinalDTDPath(parentDir, "structs.go")
 
 	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
 		p.Log.Infof("Create Go struct: '%s'", finalPath)
@@ -270,6 +296,9 @@ func (p *Parser) RenderGoStructs() {
 	}
 
 	p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
+
+	f := formatter.NewGoFormatter(p.Log, packageName)
+	f.Render(&p.Collection, finalPath)
 
 	// export every blocks
 	// for _, block := range p.Collection {

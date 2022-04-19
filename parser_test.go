@@ -108,6 +108,7 @@ func newParser(dir string) *DTDParser.Parser {
 	// Configure parser
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
+	p.SetFormatter("DTD")
 	p.SetOutputPath(dir)
 
 	if overwrite {
@@ -120,7 +121,7 @@ func newParser(dir string) *DTDParser.Parser {
 func render(p *DTDParser.Parser) func(*testing.T) {
 	return func(t *testing.T) {
 		fmt.Printf("pointer: %p", log)
-		p.RenderDTD("")
+		p.Render("")
 	}
 }
 

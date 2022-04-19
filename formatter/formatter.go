@@ -16,6 +16,12 @@ type iDTDFormatter interface {
 	Render(Collection []DTD.IDTDBlock) string
 }
 
+// SetFormatter Setter for formatter
+func AvailaibleFormatters() []string {
+	formatters := []string{"DTD", "go"}
+	return formatters
+}
+
 // Helper to join strings
 func join(strs ...string) string {
 	var sb strings.Builder

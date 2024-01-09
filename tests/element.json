@@ -1,18 +1,18 @@
 [
     {
         "name": "experiment_a",
-        "value": "(results)*"
+        "value": " (results)*"
     },
     {
         "name": "results",
-        "value": "EMPTY"
+        "value": " EMPTY"
     },
     {
         "name": "student_name",
-        "value": "(#PCDATA)"
+        "value": " (#PCDATA)"
     },
     {
         "name": "student",
-        "value": "(surname,firstname*,dob?,(origin|sex)?)"
+        "value": " (surname,firstname*,dob?,(origin|sex)?)"
     }
 ]

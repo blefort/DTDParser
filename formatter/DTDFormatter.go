@@ -41,6 +41,8 @@ func (ft *DTDFormatter) Render(collection *[]DTD.IDTDBlock, path string) {
 			ft.writeToFile(path, ft.RenderComment(block))
 		case *DTD.Entity:
 			ft.writeToFile(path, ft.RenderEntity(block))
+		case *DTD.Notation:
+			ft.writeToFile(path, ft.RenderNotation(block))
 		default:
 			panic("unidentified block")
 		}
@@ -104,6 +106,11 @@ func (ft *DTDFormatter) RenderEntity(b DTD.IDTDBlock) string {
 	}
 
 	return join("<!ENTITY", m, b.GetName(), " ", eType, "\"\n", ft.delimitter, b.GetValue(), "\n\"", url, ">", exportedStr)
+}
+
+// RenderComment render a comment
+func (ft *DTDFormatter) RenderNotation(b DTD.IDTDBlock) string {
+	return b.Render()
 }
 
 // RenderAttribute Render an attribute

@@ -41,7 +41,7 @@ func (ft *GoFormatter) Render(collection *[]DTD.IDTDBlock, path string) {
 		switch block.(type) {
 
 		case *DTD.Element:
-			ft.writeToFile(path, ft.RenderStruct(collection, block))
+			ft.writeToFile(path, ft.renderStruct(collection, block))
 		default:
 			continue
 		}
@@ -75,7 +75,8 @@ func (ft *GoFormatter) renderBlockElements(collection *[]DTD.IDTDBlock, b DTD.ID
 }
 
 func (ft *GoFormatter) parseElementValue(b DTD.IDTDBlock) *[]string {
-
+	var s []string
+	return &s
 }
 
 // writeToFile write to a DTD file

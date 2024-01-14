@@ -8,7 +8,7 @@
 //
 // Found this reference very usefull: https://xmlwriter.net/xml_guide/attlist_declaration.shtml
 //
-// This is a simplified implementation
+// # This is a simplified implementation
 //
 // This package offers one struct per DTD blocks
 // Each struct will implements the IDTDBlock
@@ -16,6 +16,7 @@
 package DTD
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -96,7 +97,7 @@ func Translate(i int) string {
 	case NOTATION:
 		return "Notation"
 	default:
-		panic("Unknown type" + string(i) + " requested")
+		panic("Unknown type" + fmt.Sprintf("%d", i) + " requested")
 	}
 }
 

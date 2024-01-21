@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// word represents a word in a sequence
 type word struct {
 	sequence   string
 	append     bool
@@ -16,6 +17,7 @@ type word struct {
 	log        *zap.SugaredLogger
 }
 
+// newWord create a new instance of word
 func newWord(Log *zap.SugaredLogger) *word {
 	var w word
 	w.append = false
@@ -27,6 +29,7 @@ func newWord(Log *zap.SugaredLogger) *word {
 	return &w
 }
 
+// scan a string representing a word and find how it was represented
 func (w *word) scan(s string) {
 
 	if !w.isQuoted && s == "\n" || len(strings.TrimSpace(w.sequence)) > 0 && s == w.endChar || s == ">" || !w.isQuoted && s == "\t" {

@@ -190,6 +190,6 @@ func (ft *DTDFormatter) AttributeType(a int) string {
 	case DTD.ENUM_ENUM:
 		return ""
 	}
-	ft.log.Debugf("No attribute type conversion possible for '%d'", a)
+	ft.log.Debugf("DTD formatter has not definition for attribute type '%s', this might be ok, an entity would not have any", a)
 	return ""
 }

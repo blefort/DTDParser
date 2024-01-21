@@ -9,8 +9,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	DTDParser "github.com/blefort/DTDParser/parser"
@@ -18,15 +20,14 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+var log *zap.SugaredLogger
+
 // main func
 func main() {
 
-	var level zap.AtomicLevel
-
 	// Input file
-	DTDFullPath := flag.String("DTD", "", "Path to the DTD")
-	DTDOutput := flag.String("output", "", "Output path to re-generate DTD")
-	GoStructOutput := flag.String("type", "", "Output path to generate go structs")
+	inputPath := flag.String("i", "", "Path to the DTD or catalog.xml")
+	outputPath := flag.String("o", "", "Output path to re-generate DTD")
 	formatter := flag.String("format", "go", "Choose the output format (go, DTD) ")
 	packageName := flag.String("package", "", "Package name")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
@@ -35,22 +36,83 @@ func main() {
 
 	flag.Parse()
 
-	// Process DTD
-	if *DTDFullPath == "" {
-		panic("Please provide a DTD")
+	// validate if input file is declared
+	if *inputPath == "" {
+		panic("Please provide a DTD or a catalog xml file")
+	}
+
+	if *outputPath == "" {
+		panic("Please provide an output directory")
+	}
+
+	// setinput file
+	inputPathAbs, _ := filepath.Abs(*inputPath)
+	outputPathAbs, _ := filepath.Abs(*outputPath)
+
+	// set logger
+	log = setLogger(verbosity, inputPathAbs)
+
+	if _, err := os.Stat(inputPathAbs); os.IsNotExist(err) {
+		log.Fatal("Input file does not exists")
+	}
+
+	if _, err := os.Stat(outputPathAbs); os.IsNotExist(err) {
+		log.Fatal("Output directory does not exists")
+	}
+
+	empty, _ := IsEmptyDir(outputPathAbs)
+	if !empty {
+		log.Fatal("Output directory does not exists")
 	}
 
 	if *formatter == "go" && *packageName == "" {
-		panic("Please provide a package name")
+		log.Fatal("Please provide a package name to format the output")
 	}
 
-	DTDFullPathAbs, err0 := filepath.Abs(*DTDFullPath)
+	// log input
+	log.Warnf("Starting DTD parser")
+	log.Warnf(" - Option 'i': %s", *inputPath)
+	log.Warnf(" - Option 'o' DTD: %s", *outputPath)
+	log.Warnf(" - Option 'formater': %s", *formatter)
+	log.Warnf(" - Option 'verbosity': %s", *verbosity)
+	log.Warnf(" - Option 'ignore-external-dtds': %t", *ignoreExtRef)
 
-	if err0 != nil {
-		os.Exit(1)
+	log.Warnf("")
+
+	if filepath.Ext(strings.ToLower(inputPathAbs)) == ".xml" {
+
+		log.Debug("Attempt to parse a catalog")
+
+	} else {
+
+		p := DTDParser.NewDTDParser(log)
+		p.SetOutputPath(outputPathAbs)
+		p.SetStructPath(outputPathAbs)
+		p.IgnoreExtRefIssue = *ignoreExtRef
+		p.SetFormatter(*formatter)
+		p.Package = *packageName
+
+		if *overwrite {
+			p.Overwrite = true
+		}
+
+		// Parse & render
+		t1 := time.Now().Unix()
+		p.Parse(inputPathAbs)
+		t2 := time.Now().Unix()
+		diff := t2 - t1
+		log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
+		p.Render("")
+
 	}
 
-	logFile := DTDFullPathAbs + ".log"
+}
+
+// setLogger return a logger based on requested verbosity
+func setLogger(verbosity *string, inputPathAbs string) *zap.SugaredLogger {
+	var level zap.AtomicLevel
+
+	logFile := inputPathAbs + ".log"
 	os.Remove(logFile)
 
 	if *verbosity == "v" {
@@ -95,59 +157,21 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync() // flushes buffer, if any
-	log := logger.Sugar()
+	return logger.Sugar()
+}
 
-	// log input
-	log.Warnf("Starting DTD parser")
-	log.Warnf(" - Option DTD: %s", *DTDFullPath)
-	log.Warnf(" - Option Output DTD: %s", *DTDOutput)
-	log.Warnf(" - Option Formater: %s", *formatter)
-	log.Warnf(" - Option Verbosity: %s", *verbosity)
-	log.Warnf(" - Option ignore external references: %t", *ignoreExtRef)
-
-	log.Warnf("")
-
-	if _, err := os.Stat(DTDFullPathAbs); os.IsNotExist(err) {
-		log.Fatal("Provide a valid path to a DTD file")
+// IsEmptyDir Test if a directory is empty
+// from https://stackoverflow.com/questions/30697324/how-to-check-if-directory-on-path-is-empty
+func IsEmptyDir(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
 	}
+	defer f.Close()
 
-	// New parser
-	p := DTDParser.NewDTDParser(log)
-	p.IgnoreExtRefIssue = *ignoreExtRef
-	p.SetFormatter(*formatter)
-	p.Package = *packageName
-
-	if *overwrite {
-		p.Overwrite = true
+	_, err = f.Readdirnames(1) // Or f.Readdir(1)
+	if err == io.EOF {
+		return true, nil
 	}
-
-	if *DTDOutput != "" {
-
-		outputPathAbs, err3 := filepath.Abs(*DTDOutput)
-
-		if err3 != nil {
-			os.Exit(1)
-		}
-
-		p.SetOutputPath(outputPathAbs)
-	}
-
-	if *GoStructOutput != "" {
-
-		outputPathAbs, err3 := filepath.Abs(*GoStructOutput)
-
-		if err3 != nil {
-			os.Exit(1)
-		}
-
-		p.SetStructPath(outputPathAbs)
-	}
-
-	// Parse & render
-	t1 := time.Now().Unix()
-	p.Parse(DTDFullPathAbs)
-	t2 := time.Now().Unix()
-	diff := t2 - t1
-	log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
-	p.Render("")
+	return false, err // Either not empty or error, suits both cases
 }

@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/blefort/DTDParser/DTD"
@@ -39,7 +40,7 @@ func newsentence(start string, end string, Log *zap.SugaredLogger) *sentence {
 func (se *sentence) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 
 	for i, w := range se.words {
-		enc.AddString("Word "+string(i), w.Read())
+		enc.AddString(fmt.Sprintf("Word %d", i), w.Read())
 	}
 	return nil
 }

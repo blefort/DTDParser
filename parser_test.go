@@ -17,7 +17,6 @@ import (
 const dirTest = "tests/"
 
 var overwrite bool
-var log *zap.SugaredLogger
 
 // TestMain Test Initialization
 func TestMain(m *testing.M) {
@@ -98,7 +97,7 @@ func loadJSON(file string, v interface{}) {
 	}
 }
 
-//  newParser() Instantiate parser and configure it
+// newParser() Instantiate parser and configure it
 func newParser(dir string) *DTDParser.Parser {
 
 	fmt.Sprintf("new parser %p", log)

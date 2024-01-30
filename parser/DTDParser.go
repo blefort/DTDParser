@@ -12,14 +12,12 @@ package DTDParser
 import (
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
 
 	"github.com/blefort/DTDParser/DTD"
-	"github.com/blefort/DTDParser/formatter"
 
 	"github.com/blefort/DTDParser/scanner"
 )
@@ -31,14 +29,9 @@ type Parser struct {
 	IgnoreExtRefIssue bool
 	Filepath          string
 	Collection        []DTD.IDTDBlock
-	parsers           []Parser
-	filepaths         *[]string
-	formatter         string
-	outputDirPath     string
-	outputStructPath  string
-	Overwrite         bool
+	Parsers           []Parser
+	Filepaths         *[]string
 	Log               *zap.SugaredLogger
-	Package           string
 }
 
 // NewDTDParser returns a new DTD parser
@@ -48,78 +41,14 @@ func NewDTDParser(Log *zap.SugaredLogger) *Parser {
 	return &p
 }
 
-// SetFormatter Setter for formatter
-func (p *Parser) SetFormatter(s string) {
-
-	for _, f := range formatter.AvailaibleFormatters() {
-		if f == s {
-			p.formatter = s
-			return
-		}
-	}
-	panic("Formatter " + s + " is not defined")
-}
-
-// SetOutputPath set the output path of the DTD
-// to export the DTD
-func (p *Parser) SetOutputPath(s string) {
-	p.outputDirPath = s
-}
-
-// SetStructPath set the output path to export the DTD a go Struct
-func (p *Parser) SetStructPath(s string) {
-	p.outputStructPath = s
-}
-
-// createOutputFile Create a DTD output file
-func (p *Parser) createOutputFile(filepath string, overwrite bool) {
-
-	exists := p.fileExists(filepath)
-
-	if exists && overwrite {
-		p.removeFile(filepath)
-	} else if exists {
-		p.Log.Debugf("createOutputFile '%s' exists and can't be overwritten", filepath)
-		return
-	}
-
-	p.Log.Debugf("createOutputFile '%s', truncate will be '%t'", filepath, overwrite)
-
-	f, err := os.Create(filepath)
-
-	if err != nil {
-		panic(err)
-	}
-
-	f.Close()
-}
-
-// fileExists Test if a file exists
-func (p *Parser) fileExists(path string) bool {
-	if _, err := os.Stat(path); err == nil {
-		return true
-	} else {
-		return false
-	}
-}
-
-// removeFile Empty content of a file
-func (p *Parser) removeFile(filepath string) {
-	p.Log.Debugf("Remove '%s'", filepath)
-	err := os.Remove(filepath)
-	if err != nil {
-		p.Log.Fatal(err)
-	}
-}
-
 // Parse Parse a DTD using its path
 func (p *Parser) Parse(filePath string) {
 	var filespaths []string
 
 	p.Log.Infof("parsing '%s'", filePath)
 
-	if p.filepaths == nil {
-		p.filepaths = &filespaths
+	if p.Filepaths == nil {
+		p.Filepaths = &filespaths
 		p.Log.Debugf("Parser filepaths was nil")
 	}
 	p.Filepath = filePath
@@ -141,7 +70,7 @@ func (p *Parser) Parse(filePath string) {
 	bytes := stat.Size()
 	p.Log.Debugf("Parsing '%s', %d bytes", p.Filepath, bytes)
 
-	*p.filepaths = append(*p.filepaths, p.Filepath)
+	*p.Filepaths = append(*p.Filepaths, p.Filepath)
 
 	// use  bufio to read file rune by rune
 	inputdata := string(filebuffer)
@@ -206,15 +135,14 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 	p.Log.Warnf("*** New parser *** for external entity %s", path)
 
 	extP := NewDTDParser(p.Log)
-	extP.outputDirPath = p.outputDirPath
-	extP.filepaths = p.filepaths
+	extP.Filepaths = p.Filepaths
 	extP.WithComments = p.WithComments
 	extP.IgnoreExtRefIssue = p.IgnoreExtRefIssue
-	extP.Overwrite = p.Overwrite
+
 	extP.Parse(path)
 
 	p.Log.Warnf("*** /end of New parser %s", path)
-	p.parsers = append(p.parsers, *extP)
+	p.Parsers = append(p.Parsers, *extP)
 
 }
 
@@ -228,149 +156,4 @@ func (p *Parser) SetExportEntity(name string) {
 		}
 	}
 	p.Log.Warnf("could not find ", name, " in the current collection")
-}
-
-// RenderDTD Render a collection to a or a set of DTD files
-func (p *Parser) Render(parentDir string) {
-
-	switch p.formatter {
-	case "DTD":
-		p.renderDTD(parentDir)
-
-	case "go":
-		p.renderGoStructs(parentDir, p.Package)
-	}
-}
-
-// RenderDTD Render a collection to a or a set of DTD files
-func (p *Parser) renderDTD(parentDir string) {
-
-	// we process here all the file path of all DTD parsed
-	// and determine the parent directory
-	// the parentDir will be happened to the output dir
-	//p.Log.Debugf("parent Dir is: %s, Filepaths are %+v", parentDir, *p.filepaths)
-
-	if parentDir == "" {
-		parentDir = filepath.Dir(commonPrefix(*p.filepaths))
-		p.Log.Debugf("ParentDir from filepaths is: %s", parentDir)
-	}
-
-	finalPath := p.determineFinalDTDPath(parentDir, p.Filepath)
-
-	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
-		p.Log.Infof("Create DTD: '%s'", finalPath)
-		p.createOutputFile(finalPath, false)
-	} else if p.Overwrite {
-		p.Log.Infof("Overwrite DTD: '%s'", finalPath)
-		p.createOutputFile(finalPath, true)
-	} else {
-		p.Log.Fatalf("Output DTD: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
-	}
-
-	p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
-
-	f := formatter.NewDTDFormatter(p.Log)
-	f.Render(&p.Collection, finalPath)
-
-	// process children parsers
-	//for idx, parser := range p.parsers {
-	//p.Log.Warnf("Render DTD's child '%d/%d'", idx+1, len(p.parsers))
-	//	parser.RenderDTD(parentDir)
-	//}
-
-}
-
-// RenderGoStructs Render a collection to a or a file containing go structs
-func (p *Parser) renderGoStructs(parentDir string, packageName string) {
-
-	finalPath := p.determineFinalDTDPath(parentDir, "structs.go")
-
-	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
-		p.Log.Infof("Create Go struct: '%s'", finalPath)
-		p.createOutputFile(finalPath, false)
-	} else if p.Overwrite {
-		p.Log.Infof("Overwrite: '%s'", finalPath)
-		p.createOutputFile(finalPath, true)
-	} else {
-		p.Log.Fatalf("Output Go struct: '%s' already exists, please remove it before or use flag -overwrite", finalPath)
-	}
-
-	p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
-
-	f := formatter.NewGoFormatter(p.Log, packageName)
-	f.Render(&p.Collection, finalPath)
-
-	// export every blocks
-	// for _, block := range p.Collection {
-	// 	p.Log.Debugf("Exporting block: %#v ", block)
-	// 	c := block.Render() + "\n"
-	// 	writeToFile(finalPath, c)
-	// }
-
-	// // process children parsers
-	// for _, parser := range p.parsers {
-	// 	parser.RenderDTD(parentDir)
-	// }
-}
-
-func (p *Parser) determineFinalDTDPath(parentDir string, i string) string {
-
-	p.Log.Debugf("determineFinalDTDPath: source is: '%s'", i)
-
-	// determine relative directory
-	pDir := filepath.Dir(i)
-
-	// relative dir remove parent directory from the path
-	rDir := strings.TrimPrefix(pDir, parentDir)
-	p.Log.Debugf("rDir %s", rDir)
-
-	oDir := p.outputDirPath
-
-	// absolute from output dir
-	if rDir != "" {
-		oDir = p.outputDirPath + "/" + rDir
-	}
-
-	if _, err := os.Stat(oDir); os.IsNotExist(err) {
-		p.Log.Debugf("Create: %s", oDir)
-		os.MkdirAll(oDir, 0770)
-	}
-
-	finalPath := oDir + "/" + filepath.Base(i)
-	p.Log.Debugf("finalPath %s", finalPath)
-
-	return finalPath
-}
-
-// commonPrefix Given a slice of path (String) find the common shared directory path
-// from https://www.rosettacode.org/wiki/Find_common_directory_path#Go
-func commonPrefix(paths []string) string {
-	// Handle special cases.
-	switch len(paths) {
-	case 0:
-		return ""
-	case 1:
-		return path.Clean(paths[0])
-	}
-
-	c := []byte(path.Clean(paths[0]))
-
-	// Ignore the first path since it's already in c
-	for _, v := range paths[1:] {
-		// Clean up each path before testing it
-		v = path.Clean(v)
-
-		// Find the first non-common byte and truncate c
-		if len(v) < len(c) {
-			c = c[:len(v)]
-		}
-		for i := 0; i < len(c); i++ {
-			if v[i] != c[i] {
-				c = c[:i]
-				break
-			}
-		}
-	}
-
-	return string(c)
 }

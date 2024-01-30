@@ -8,13 +8,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/blefort/DTDParser/formatter"
+	DTDformat "github.com/blefort/DTDParser/formatter/DTDformat"
 	DTDParser "github.com/blefort/DTDParser/parser"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -27,9 +27,10 @@ func main() {
 
 	// Input file
 	inputPath := flag.String("i", "", "Path to the DTD or catalog.xml")
-	outputPath := flag.String("o", "", "Output path to re-generate DTD")
-	formatter := flag.String("format", "go", "Choose the output format (go, DTD) ")
-	packageName := flag.String("package", "", "Package name")
+	outputDir := flag.String("o", "", "Output directory")
+	outputFilename := flag.String("f", "", "Output filename")
+	format := flag.String("format", "go", "Choose the output format (go, DTD) ")
+	optionsParam := flag.String("options", "{ package=\"MyPackage\"", "Formatter options, appends options as a json string")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
 	verbosity := flag.String("verbosity", "", "Verbose v, vv or vvv")
 	ignoreExtRef := flag.Bool("ignore-external-dtd", false, "Do not process external DTD")
@@ -41,39 +42,51 @@ func main() {
 		panic("Please provide a DTD or a catalog xml file")
 	}
 
-	if *outputPath == "" {
+	if *outputDir == "" {
 		panic("Please provide an output directory")
 	}
 
 	// setinput file
 	inputPathAbs, _ := filepath.Abs(*inputPath)
-	outputPathAbs, _ := filepath.Abs(*outputPath)
+	outputDirAbs, _ := filepath.Abs(*outputDir)
 
 	// set logger
 	log = setLogger(verbosity, inputPathAbs)
 
+	log.Info("start")
+
 	if _, err := os.Stat(inputPathAbs); os.IsNotExist(err) {
 		log.Fatal("Input file does not exists")
+		os.Exit(1)
 	}
 
-	if _, err := os.Stat(outputPathAbs); os.IsNotExist(err) {
+	if _, err := os.Stat(outputDirAbs); os.IsNotExist(err) {
 		log.Fatal("Output directory does not exists")
+		os.Exit(1)
 	}
 
-	empty, _ := IsEmptyDir(outputPathAbs)
-	if !empty {
-		log.Fatal("Output directory does not exists")
+	empty, _ := IsEmptyDir(outputDirAbs)
+
+	if !empty && !*overwrite {
+		log.Fatal("Output directory is not empty, use -overwrite to overwrite files")
+		os.Exit(1)
 	}
 
-	if *formatter == "go" && *packageName == "" {
-		log.Fatal("Please provide a package name to format the output")
+	if !formatter.Exists(*format) {
+		log.Fatalf("Formatter '%s' does not exists, current formatter available are '%s'", *format, strings.Join(formatter.AvailaibleFormatters(), ", "))
+		os.Exit(1)
+	}
+
+	if *optionsParam != "" {
+
 	}
 
 	// log input
 	log.Warnf("Starting DTD parser")
 	log.Warnf(" - Option 'i': %s", *inputPath)
-	log.Warnf(" - Option 'o' DTD: %s", *outputPath)
-	log.Warnf(" - Option 'formater': %s", *formatter)
+	log.Warnf(" - Option 'o' DTD: %s", *outputDir)
+	log.Warnf(" - Option 'formater': %s", *format)
+	log.Warnf(" - Option 'options': %s", *optionsParam)
 	log.Warnf(" - Option 'verbosity': %s", *verbosity)
 	log.Warnf(" - Option 'ignore-external-dtds': %t", *ignoreExtRef)
 
@@ -86,23 +99,12 @@ func main() {
 	} else {
 
 		p := DTDParser.NewDTDParser(log)
-		p.SetOutputPath(outputPathAbs)
-		p.SetStructPath(outputPathAbs)
 		p.IgnoreExtRefIssue = *ignoreExtRef
-		p.SetFormatter(*formatter)
-		p.Package = *packageName
-
-		if *overwrite {
-			p.Overwrite = true
-		}
-
-		// Parse & render
-		t1 := time.Now().Unix()
 		p.Parse(inputPathAbs)
-		t2 := time.Now().Unix()
-		diff := t2 - t1
-		log.Warnf(fmt.Sprintf("Parsed in %d ms", diff))
-		p.Render("")
+
+		format := DTDformat.New(log)
+		formatter := formatter.NewFormatter(p, format, *outputDir, *outputFilename, log)
+		formatter.Render()
 
 	}
 

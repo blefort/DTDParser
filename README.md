@@ -5,6 +5,12 @@
 Exploring Go language in a DTD parser. This is a personal project, I do it when I have time, if you interest in it, feel free to open an issue.
 The goal of the project is to parse DTD and generate Structs to be used in others Go programs.
 
+# How to run?
+
+Simple example
+```go run . -i sample/docbook.dtd -o out -format go -verbosity v```
+
+
 # Roadmap
 
 * [alpha] Parse DTD and generate corresponding structs in memory

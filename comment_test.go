@@ -2,6 +2,9 @@ package main
 
 import (
 	"testing"
+
+	"github.com/blefort/DTDParser/formatter"
+	DTDformat "github.com/blefort/DTDParser/formatter/DTDformat"
 )
 
 // CommentTestResult struct to test comment
@@ -46,6 +49,10 @@ func testCommentDTD(t *testing.T, path string, recreate bool) {
 	// New parser
 	p := newParser(dir)
 
+	// new DTD formatter
+	format := DTDformat.New(log)
+	formatter := formatter.NewFormatter(p, format, dir, "comment.dtd", log)
+
 	p.Parse(path)
 	tests = loadCommentTests("tests/comment.json")
 
@@ -62,5 +69,5 @@ func testCommentDTD(t *testing.T, path string, recreate bool) {
 		t.Run("Check value", checkStrValue(parsedBlock.GetValue(), test.Value, parsedBlock, test))
 	}
 
-	t.Run("Render DTD", render(p))
+	t.Run("Render DTD", render(formatter))
 }

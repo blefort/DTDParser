@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
+	"github.com/blefort/DTDParser/formatter"
+	DTDformat "github.com/blefort/DTDParser/formatter/DTDformat"
 )
 
 // AttrTestResult struct to attributes
@@ -46,6 +48,10 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 
 	// New parser
 	p := newParser(dir)
+
+	// new DTD formatter
+	format := DTDformat.New(log)
+	formatter := formatter.NewFormatter(p, format, dir, "attlist.dtd", log)
 
 	p.Parse(path)
 	tests = loadAttlistTests("tests/attlist.json")
@@ -111,7 +117,7 @@ func testAttlistDTD(t *testing.T, path string, recreate bool) {
 		}
 		t.Run("Attlist: Check name", checkStrValue(AttlistBlock.GetName(), test.Name, test, AttlistBlock))
 	}
-	t.Run("Render DTD", render(p))
+	t.Run("Render DTD", render(formatter))
 }
 
 // AttlistExported() Helper to test DTD.Attlist.GetExported()

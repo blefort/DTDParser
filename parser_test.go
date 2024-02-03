@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/blefort/DTDParser/formatter"
+
 	DTDParser "github.com/blefort/DTDParser/parser"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -107,20 +109,15 @@ func newParser(dir string) *DTDParser.Parser {
 	// Configure parser
 	p.WithComments = true
 	p.IgnoreExtRefIssue = true
-	p.SetFormatter("DTD")
-	p.SetOutputPath(dir)
 
-	if overwrite {
-		p.Overwrite = overwrite
-	}
 	return p
 }
 
 // Render
-func render(p *DTDParser.Parser) func(*testing.T) {
+func render(f *formatter.Formatter) func(*testing.T) {
 	return func(t *testing.T) {
 		fmt.Printf("pointer: %p", log)
-		p.Render("")
+		f.Render()
 	}
 }
 

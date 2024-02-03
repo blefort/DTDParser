@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
+	"github.com/blefort/DTDParser/formatter"
+	DTDformat "github.com/blefort/DTDParser/formatter/DTDformat"
 )
 
 // loadEntityTests Load entity tests
@@ -40,6 +42,11 @@ func testEntityDTD(t *testing.T, path string, recreate bool) {
 
 	// New parser
 	p := newParser(dir)
+
+	// new DTD formatter
+	format := DTDformat.New(log)
+	formatter := formatter.NewFormatter(p, format, dir, "entity.dtd", log)
+
 	p.Parse(path)
 
 	tests = loadEntityTests("tests/entity.json")
@@ -61,5 +68,5 @@ func testEntityDTD(t *testing.T, path string, recreate bool) {
 		t.Run("Check External Entity", checkBoolValue(entityBlock.IsExternal, test.IsExternal, entityBlock, test))
 		t.Run("Check Url", checkStrValue(entityBlock.Url, test.Url, entityBlock, test))
 	}
-	t.Run("Render DTD", render(p))
+	t.Run("Render DTD", render(formatter))
 }

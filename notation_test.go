@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/blefort/DTDParser/DTD"
+	"github.com/blefort/DTDParser/formatter"
+	DTDformat "github.com/blefort/DTDParser/formatter/DTDformat"
 )
 
 // loadElementTests Load element tests
@@ -42,6 +44,11 @@ func testNotationDTD(t *testing.T, path string, recreate bool) {
 
 	// New parser
 	p := newParser(dir)
+
+	// new DTD formatter
+	format := DTDformat.New(log)
+	formatter := formatter.NewFormatter(p, format, dir, "notation.dtd", log)
+
 	p.Parse(path)
 
 	tests = loadNotationTests("tests/notation.json")
@@ -61,5 +68,5 @@ func testNotationDTD(t *testing.T, path string, recreate bool) {
 		t.Run("Check System", checkBoolValue(parsedBlock.System, test.System, parsedBlock, test))
 		t.Run("Check Public", checkBoolValue(parsedBlock.Public, test.Public, parsedBlock, test))
 	}
-	t.Run("Render DTD", render(p))
+	t.Run("Render DTD", render(formatter))
 }

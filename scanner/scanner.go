@@ -155,21 +155,24 @@ func ParseElementValue(e *DTD.Element) {
 	var previous *DTD.ElementGroup
 	var w string
 
-	//e.Group = &root
+	root.SetRoot()
+	e.Content = &root
 	current = &root
+	previous = &root
 
-	for _, r := range e.Value {
+	for idx, r := range e.Value {
 		c := string(r)
-		w = w + c
 
 		switch c {
 		case "(":
-			current.IsGroup = true
-			child := current.AddChild()
-			previous = current
-			current = child
+			if idx > 1 {
+				child := current.AddChild()
+				previous = current
+				current = child
+			}
 
 		case ")":
+			current.AddChildElement(&w)
 			current = current.GetParent()
 
 		case "*":
@@ -182,18 +185,19 @@ func ParseElementValue(e *DTD.Element) {
 			previous.OneOrMore = true
 
 		case ",":
+			current.AddChildElement(&w)
 			current.GetParent().IsAnd = true
-			sibling := current.GetParent().AddChild()
-			current = sibling
 
 		case "|":
+			current.AddChildElement(&w)
 			current.GetParent().IsAnd = false
-			sibling := current.GetParent().AddChild()
-			current = sibling
-			w = ""
+
+		case " ":
+		case "\t":
+			continue
 
 		default:
-			current.Name = current.Name + c
+			w = w + c
 			continue
 
 		}

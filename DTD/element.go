@@ -7,9 +7,9 @@ package DTD
 
 // Element represents a DTD element
 type Element struct {
-	Name  string
-	Value string
-	Group *ElementGroup
+	Name    string
+	Value   string
+	Content *ElementGroup
 }
 
 // Render an Element

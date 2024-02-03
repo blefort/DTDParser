@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/blefort/DTDParser/DTD"
 	"github.com/blefort/DTDParser/formatter"
 	DTDParser "github.com/blefort/DTDParser/parser"
 	"go.uber.org/zap"
@@ -54,16 +55,47 @@ func (d *JsonFormat) Render(f *formatter.Formatter, parentDir string) {
 
 }
 
+type JsonBlock struct {
+	Type string
+	Data DTD.IDTDBlock
+}
+
 // Render Render DTD blocks
 func (d *JsonFormat) RenderCollection(parser *DTDParser.Parser, path string) {
 
-	b, err := json.MarshalIndent(parser.Collection, "", "    ")
+	var blocks []JsonBlock
+
+	// export every blocks
+	for _, block := range parser.Collection {
+		//p.Log.Debugf("Exporting block: %#v ", block)
+		switch block.(type) {
+		case *DTD.Attlist:
+		//	d.writeToFile(path, d.RenderAttlist(block))
+		case *DTD.Element:
+
+			var b JsonBlock
+			b.Type = "element"
+			b.Data = block
+
+			blocks = append(blocks, b)
+
+		case *DTD.Comment:
+		//	d.writeToFile(path, d.RenderComment(block))
+		case *DTD.Entity:
+		//	d.writeToFile(path, d.RenderEntity(block))
+		case *DTD.Notation:
+		//	d.writeToFile(path, d.RenderNotation(block))
+		default:
+			panic("unidentified block")
+		}
+	}
+
+	s, err := json.MarshalIndent(blocks, "", "  ")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
-	d.writeToFile(path, string(b))
+	d.writeToFile(path, string(s))
 
 }
 

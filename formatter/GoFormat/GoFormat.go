@@ -24,7 +24,7 @@ type GoFormat struct {
 }
 
 // NewGoFormat instantiate new GoFormat struct
-func NewGoFormat(log *zap.SugaredLogger) *GoFormat {
+func New(log *zap.SugaredLogger) formatter.FormatterInterface {
 	var f GoFormat
 	f.delimitter = "\t"
 	f.log = log
@@ -36,7 +36,7 @@ func (d *GoFormat) ValidateOptions(f *formatter.Formatter) bool {
 }
 
 // RenderGoStructs Render a collection to a or a file containing go structs
-func (d *GoFormat) render(f *formatter.Formatter, parentDir string) {
+func (d *GoFormat) Render(f *formatter.Formatter, parentDir string) {
 
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory

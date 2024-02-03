@@ -59,7 +59,7 @@ func (f *Formatter) SetOptions(jsonString *string) {
 	}
 }
 
-// createOutputFile Create output file
+// createOutputFile Create output
 func (f *Formatter) CreateOutputFile(filepath string) {
 
 	file, err := os.Create(filepath)
@@ -182,7 +182,7 @@ func (f *Formatter) fileExists(file string) bool {
 
 // AvailaibleFormatters return list of formatter
 func AvailaibleFormatters() []string {
-	formatters := []string{"DTD", "go"}
+	formatters := []string{"dtd", "go", "json"}
 	return formatters
 }
 

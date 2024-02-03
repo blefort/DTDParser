@@ -9,6 +9,7 @@ package DTD
 type Element struct {
 	Name  string
 	Value string
+	Group *ElementGroup
 }
 
 // Render an Element

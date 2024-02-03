@@ -127,7 +127,6 @@ func (sc *DTDScanner) ParseComment(s *sentence) *DTD.Comment {
 // Element Declaration
 // [45]   	elementdecl	   ::=   	'<!ELEMENT' S Name S contentspec S? '>'	[VC: Unique Element Type Declaration]
 // [46]   	contentspec	   ::=   	'EMPTY' | 'ANY' | Mixed | children
-//
 func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 	var e DTD.Element
 
@@ -143,18 +142,71 @@ func (sc *DTDScanner) ParseElement(s *sentence) *DTD.Element {
 		e.Value = e.Value + " " + words[i].Read()
 	}
 
+	ParseElementValue(&e)
+
 	sc.Log.Info("ParseElement ", e.Name)
 	return &e
+}
+
+// ParseElementValue Parse the element value and get a structure from it
+func ParseElementValue(e *DTD.Element) {
+	var root DTD.ElementGroup
+	var current *DTD.ElementGroup
+	var previous *DTD.ElementGroup
+	var w string
+
+	//e.Group = &root
+	current = &root
+
+	for _, r := range e.Value {
+		c := string(r)
+		w = w + c
+
+		switch c {
+		case "(":
+			current.IsGroup = true
+			child := current.AddChild()
+			previous = current
+			current = child
+
+		case ")":
+			current = current.GetParent()
+
+		case "*":
+			previous.ZeroOrMore = true
+
+		case "?":
+			previous.Optional = true
+
+		case "+":
+			previous.OneOrMore = true
+
+		case ",":
+			current.GetParent().IsAnd = true
+			sibling := current.GetParent().AddChild()
+			current = sibling
+
+		case "|":
+			current.GetParent().IsAnd = false
+			sibling := current.GetParent().AddChild()
+			current = sibling
+			w = ""
+
+		default:
+			current.Name = current.Name + c
+			continue
+
+		}
+	}
 }
 
 // ParseNotation Use the information in the sentence to return a pointer to a DTD.Notation
 // @ref https://www.w3.org/TR/xml11/#Notations
 //
-// Element Declaration
+// # Element Declaration
 //
 // [82]  NotationDec ::= '<!NOTATION' S Name S (ExternalID | PublicID) S? '>'  [VC: Unique Notation Name]
 // [83]  PublicID    ::= 'PUBLIC' S PubidLiteral
-//
 func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 	var n DTD.Notation
 
@@ -201,7 +253,6 @@ func (sc *DTDScanner) ParseNotation(s *sentence) *DTD.Notation {
 // [72]   	PEDecl     ::=   	'<!ENTITY' S '%' S Name S PEDef S? '>'
 // [73]   	EntityDef  ::=   	EntityValue | (ExternalID NDataDecl?)
 // [74]   	PEDef	   ::=   	EntityValue | ExternalID
-//
 func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	var e DTD.Entity
 
@@ -252,7 +303,6 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 //
 // [52]   	AttlistDecl	   ::=   	'<!ATTLIST' S Name AttDef* S? '>'
 // [53]   	AttDef	   ::=   	S Name S AttType S DefaultDecl
-//
 func (sc *DTDScanner) ParseAttlist(s *sentence) *DTD.Attlist {
 	var attlist DTD.Attlist
 

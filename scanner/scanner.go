@@ -71,7 +71,7 @@ func (sc *DTDScanner) Previous() bool {
 }
 
 // Scan the string to find the next block
-func (sc *DTDScanner) Scan() (DTD.IDTDBlock, []*word, error) {
+func (sc *DTDScanner) Scan() (interface{}, []*word, error) {
 
 	// seek until next DTD block
 	s := sc.seekUntilNextBlock()
@@ -173,6 +173,7 @@ func ParseElementValue(e *DTD.Element) {
 
 		case ")":
 			current.AddChildElement(&w)
+			previous = current
 			current = current.GetParent()
 
 		case "*":

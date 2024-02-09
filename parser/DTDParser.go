@@ -29,9 +29,16 @@ type Parser struct {
 	IgnoreExtRefIssue bool
 	Filepath          string
 	Collection        []DTD.IDTDBlock
+	Elements          map[string]*Element
 	Parsers           []Parser
 	Filepaths         *[]string
 	Log               *zap.SugaredLogger
+}
+
+type Element struct {
+	Element    *DTD.Element
+	Attributes *DTD.Attlist
+	Comment    *DTD.Comment
 }
 
 // NewDTDParser returns a new DTD parser
@@ -52,6 +59,7 @@ func (p *Parser) Parse(filePath string) {
 		p.Log.Debugf("Parser filepaths was nil")
 	}
 	p.Filepath = filePath
+	p.Elements = make(map[string]*Element)
 
 	// Open file
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
@@ -97,7 +105,21 @@ func (p *Parser) Parse(filePath string) {
 			p.SetExportEntity(entityName)
 		}
 
-		p.Collection = append(p.Collection, DTDBlock)
+		DTDElement, ok := DTDBlock.(*DTD.Element)
+
+		if ok {
+			el := p.setElement(DTDElement.Name)
+			el.Element = DTDElement
+		}
+
+		DTDAttr, ok := DTDBlock.(*DTD.Attlist)
+
+		if ok {
+			el := p.setElement(DTDAttr.Name)
+			el.Attributes = DTDAttr
+		}
+
+		p.Collection = append(p.Collection, DTDBlock.(DTD.IDTDBlock))
 
 		if DTD.IsEntityType(DTDBlock) {
 			p.parseExternalEntity(DTDBlock.(*DTD.Entity))
@@ -105,6 +127,16 @@ func (p *Parser) Parse(filePath string) {
 
 	}
 	p.Log.Infof("%d blocks found in DTD '%s'", len(p.Collection), p.Filepath)
+}
+
+func (p *Parser) setElement(name string) *Element {
+	val, ok := p.Elements[name]
+	if ok {
+		return val
+	}
+	var El Element
+	p.Elements[name] = &El
+	return &El
 }
 
 // parseExternalEntity Parse an external DTD reference declared in an entity

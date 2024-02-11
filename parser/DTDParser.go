@@ -30,15 +30,17 @@ type Parser struct {
 	Filepath          string
 	Collection        []DTD.IDTDBlock
 	Elements          map[string]*Element
+	Entities          map[string]*DTD.Entity
 	Parsers           []Parser
 	Filepaths         *[]string
 	Log               *zap.SugaredLogger
 }
 
+// represent a structure element
 type Element struct {
 	Element    *DTD.Element
 	Attributes *DTD.Attlist
-	Comment    *DTD.Comment
+	Comments   []*DTD.Comment
 }
 
 // NewDTDParser returns a new DTD parser
@@ -51,6 +53,7 @@ func NewDTDParser(Log *zap.SugaredLogger) *Parser {
 // Parse Parse a DTD using its path
 func (p *Parser) Parse(filePath string) {
 	var filespaths []string
+	var comments []*DTD.Comment
 
 	p.Log.Infof("parsing '%s'", filePath)
 
@@ -60,6 +63,7 @@ func (p *Parser) Parse(filePath string) {
 	}
 	p.Filepath = filePath
 	p.Elements = make(map[string]*Element)
+	p.Entities = make(map[string]*DTD.Entity)
 
 	// Open file
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
@@ -105,18 +109,38 @@ func (p *Parser) Parse(filePath string) {
 			p.SetExportEntity(entityName)
 		}
 
+		DTDComment, ok := DTDBlock.(*DTD.Comment)
+
+		if ok {
+			comments = append(comments, DTDComment)
+		}
+
 		DTDElement, ok := DTDBlock.(*DTD.Element)
 
 		if ok {
 			el := p.setElement(DTDElement.Name)
 			el.Element = DTDElement
+			el.Comments = comments
+			comments = nil
 		}
 
 		DTDAttr, ok := DTDBlock.(*DTD.Attlist)
 
 		if ok {
 			el := p.setElement(DTDAttr.Name)
+			p.ExtendEntityInAttributes(DTDAttr)
 			el.Attributes = DTDAttr
+
+		}
+
+		DTDEntity, ok := DTDBlock.(*DTD.Entity)
+
+		if ok {
+			_, ok = p.Entities[DTDEntity.Name]
+			if !ok {
+				p.Log.Infof("Entity found '%s'", DTDEntity.Name)
+				p.Entities[DTDEntity.Name] = DTDEntity
+			}
 		}
 
 		p.Collection = append(p.Collection, DTDBlock.(DTD.IDTDBlock))
@@ -137,6 +161,21 @@ func (p *Parser) setElement(name string) *Element {
 	var El Element
 	p.Elements[name] = &El
 	return &El
+}
+
+func (p *Parser) ExtendEntityInAttributes(b *DTD.Attlist) {
+	for _, attr := range b.Attributes {
+		if attr.IsEntity {
+			ent, ok := p.Entities[attr.GetEntityValue()]
+			if ok {
+				p.Log.Debugf("ExtendEntity: found '%s'", attr.GetEntityValue())
+				b.Attributes = append(b.Attributes, ent.Attributes...)
+
+			} else {
+				p.Log.Infof("ExtendEntity: not found '%s'", attr.GetEntityValue())
+			}
+		}
+	}
 }
 
 // parseExternalEntity Parse an external DTD reference declared in an entity

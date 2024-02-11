@@ -19,7 +19,7 @@ func (a *Attlist) Render() string {
 	attributes := "\n"
 
 	for _, attr := range a.Attributes {
-		attributes += attr.Render()
+		attributes += attr.Render(true)
 	}
 
 	return join("<!ATTLIST ", a.Name, " ", attributes, ">\n")

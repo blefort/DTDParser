@@ -57,6 +57,8 @@ func (se *sentence) getWords(inSequence bool) []*word {
 
 func (se *sentence) scan(s string) bool {
 
+	se.log.Debugf("sentence: scan'%s'", s)
+
 	wordIdx := len(se.words) - 1
 
 	if !se.append && s == se.start[0:1] {

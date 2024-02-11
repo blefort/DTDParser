@@ -29,6 +29,29 @@ func newWord(Log *zap.SugaredLogger) *word {
 	return &w
 }
 
+// newWordFromString create a new instance of word from a a string
+func newWordFromString(s string, Log *zap.SugaredLogger) *word {
+	var w word
+	w.sequence = s
+	w.append = false
+	w.isQuoted = false
+	w.done = false
+	w.log = Log
+	w.endChar = " "
+	w.inSequence = false
+	return &w
+}
+
+// newWordFromString create a new instance of word from a a string
+func newWordFromStringArr(strArr *[]string, Log *zap.SugaredLogger) []*word {
+	var words []*word
+	for _, s := range *strArr {
+		w := newWordFromString(s, Log)
+		words = append(words, w)
+	}
+	return words
+}
+
 // scan a string representing a word and find how it was represented
 func (w *word) scan(s string) {
 

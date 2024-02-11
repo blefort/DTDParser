@@ -301,6 +301,13 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 		e.Value = words[len(words)-1].Read()
 	}
 
+	if e.Value != "" {
+		//	var contentPosition int
+		attWords := strings.Fields(e.Value)
+		words := newWordFromStringArr(&attWords, sc.Log)
+		sc.parseAttributes(words, &e.Attributes)
+	}
+
 	return &e
 }
 
@@ -315,7 +322,7 @@ func (sc *DTDScanner) ParseAttlist(s *sentence) *DTD.Attlist {
 	sc.logWords(&words)
 	attlist.Name = words[1].Read()
 	sc.Log.Info("ParseAttlist ", attlist.Name)
-	sc.parseAttributes(words[2:len(words)], &attlist.Attributes)
+	sc.parseAttributes(words[2:], &attlist.Attributes)
 	return &attlist
 }
 
@@ -346,7 +353,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 		sc.Log.Debugf("Processing word: %s", words[i].Read())
 		// reference to an entity
 		if words[i].Read()[0:1] == "%" {
-			sc.Log.Debugf("- reference to an entity found: %s", words[i].Read())
+			sc.Log.Debugf("Reference to an entity found: %s", words[i].Read())
 			attr.Value = words[i].Read()
 			attr.IsEntity = true
 			*attributes = append(*attributes, attr)
@@ -358,7 +365,8 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 		sc.Log.Debugf("processing attribute: '%s'", attr.Name)
 
 		if !nextWord(&i, l) {
-			sc.Log.Fatalf("Not enough arguments to loop through attributes i:%d", i)
+			sc.Log.Debugf("Not enough arguments to loop through attributes i:%d", i)
+			return
 		}
 
 		// CASE 2
@@ -388,7 +396,7 @@ func (sc *DTDScanner) parseAttributes(words []*word, attributes *[]DTD.Attribute
 		} else if attr.Type == DTD.ENUM_ENUM {
 			sc.checkDefaultValue(words, &i, &attr)
 		} else {
-			sc.Log.Fatalf("unmanaged attribute type %d", attr.Type)
+			sc.Log.Infof("unmanaged attribute type %d", attr.Type)
 		}
 
 		sc.logAttribute(&attr)
@@ -531,13 +539,13 @@ func (sc *DTDScanner) findDTDBlockType(s *sentence) {
 
 // logOutputAttributes helper function to output attributes in the log
 func (sc *DTDScanner) logAttribute(attr *DTD.Attribute) {
-	sc.Log.Infof(fmt.Sprintf(" - attribute: '%s'", attr.Render()))
+	sc.Log.Infof(fmt.Sprintf(" - attribute: '%s'", attr.Render(false)))
 }
 
 // logOutputAttributes helper function to output attributes in the log
 func (sc *DTDScanner) logOutputAttributes(attributes *[]DTD.Attribute) {
 	for i, attr := range *attributes {
-		sc.Log.Debugf(fmt.Sprintf(" - attribute (%d): '%s'", i, attr.Render()))
+		sc.Log.Debugf(fmt.Sprintf(" - attribute (%d): '%s'", i, attr.Render(false)))
 	}
 }
 

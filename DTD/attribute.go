@@ -24,11 +24,17 @@ type Attribute struct {
 }
 
 // Render an Attribute
-func (a *Attribute) Render() string {
-	s := "\t"
+func (a *Attribute) Render(withLineBreak bool) string {
+	s := ""
+	if withLineBreak {
+		s = "\t"
+	}
 
 	if a.Name != "" {
-		s += a.Name + "\t"
+		s += a.Name
+		if withLineBreak {
+			s += "\t"
+		}
 	}
 
 	s += AttributeType(a.Type) + " "
@@ -51,9 +57,21 @@ func (a *Attribute) Render() string {
 		s += " #REQUIRED "
 	}
 
-	s += "\n"
+	if withLineBreak {
+		s += "\n"
+	}
 
 	return s
+}
+
+// GetEntityValue return the entity name that was referenced
+// since the reference contains start with a '%' and finish with a ';'
+// it must be removed
+func (a *Attribute) GetEntityValue() string {
+	if a.IsEntity {
+		return a.Value[1 : len(a.Value)-1]
+	}
+	return ""
 }
 
 // GetExported Unused, tells if the comment was exported

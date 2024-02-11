@@ -22,6 +22,9 @@ import (
 	"github.com/blefort/DTDParser/scanner"
 )
 
+var Elements map[string]*Element
+var Entities map[string]*DTD.Entity
+
 // Parser is a structure that represents the parser
 // it can manage multiple DTD parsers
 type Parser struct {
@@ -29,8 +32,6 @@ type Parser struct {
 	IgnoreExtRefIssue bool
 	Filepath          string
 	Collection        []DTD.IDTDBlock
-	Elements          map[string]*Element
-	Entities          map[string]*DTD.Entity
 	Parsers           []Parser
 	Filepaths         *[]string
 	Log               *zap.SugaredLogger
@@ -41,6 +42,11 @@ type Element struct {
 	Element    *DTD.Element
 	Attributes *DTD.Attlist
 	Comments   []*DTD.Comment
+}
+
+func init() {
+	Elements = make(map[string]*Element)
+	Entities = make(map[string]*DTD.Entity)
 }
 
 // NewDTDParser returns a new DTD parser
@@ -62,8 +68,6 @@ func (p *Parser) Parse(filePath string) {
 		p.Log.Debugf("Parser filepaths was nil")
 	}
 	p.Filepath = filePath
-	p.Elements = make(map[string]*Element)
-	p.Entities = make(map[string]*DTD.Entity)
 
 	// Open file
 	filebuffer, err := ioutil.ReadFile(p.Filepath)
@@ -118,6 +122,7 @@ func (p *Parser) Parse(filePath string) {
 		DTDElement, ok := DTDBlock.(*DTD.Element)
 
 		if ok {
+			p.Log.Warnf("DTD.Element '%s' added to the list of element", DTDElement.Name)
 			el := p.setElement(DTDElement.Name)
 			el.Element = DTDElement
 			el.Comments = comments
@@ -127,6 +132,7 @@ func (p *Parser) Parse(filePath string) {
 		DTDAttr, ok := DTDBlock.(*DTD.Attlist)
 
 		if ok {
+			p.Log.Warnf("DTD.Attlist '%s' added to the list of element", DTDAttr.Name)
 			el := p.setElement(DTDAttr.Name)
 			p.ExtendEntityInAttributes(DTDAttr)
 			el.Attributes = DTDAttr
@@ -136,10 +142,10 @@ func (p *Parser) Parse(filePath string) {
 		DTDEntity, ok := DTDBlock.(*DTD.Entity)
 
 		if ok {
-			_, ok = p.Entities[DTDEntity.Name]
+			_, ok = Entities[DTDEntity.Name]
 			if !ok {
 				p.Log.Infof("Entity found '%s'", DTDEntity.Name)
-				p.Entities[DTDEntity.Name] = DTDEntity
+				Entities[DTDEntity.Name] = DTDEntity
 			}
 		}
 
@@ -151,22 +157,23 @@ func (p *Parser) Parse(filePath string) {
 
 	}
 	p.Log.Infof("%d blocks found in DTD '%s'", len(p.Collection), p.Filepath)
+	p.Log.Infof("%d Elements found in all DTDs from '%s'", len(Elements), p.Filepath)
 }
 
 func (p *Parser) setElement(name string) *Element {
-	val, ok := p.Elements[name]
+	val, ok := Elements[name]
 	if ok {
 		return val
 	}
 	var El Element
-	p.Elements[name] = &El
+	Elements[name] = &El
 	return &El
 }
 
 func (p *Parser) ExtendEntityInAttributes(b *DTD.Attlist) {
 	for _, attr := range b.Attributes {
 		if attr.IsEntity {
-			ent, ok := p.Entities[attr.GetEntityValue()]
+			ent, ok := Entities[attr.GetEntityValue()]
 			if ok {
 				p.Log.Debugf("ExtendEntity: found '%s'", attr.GetEntityValue())
 				b.Attributes = append(b.Attributes, ent.Attributes...)
@@ -203,7 +210,7 @@ func (p *Parser) parseExternalEntity(e *DTD.Entity) {
 		return
 	}
 
-	p.Log.Warnf("*** New parser *** for external entity %s", path)
+	p.Log.Warnf("*** New parser *** for external entity '%s'", path)
 
 	extP := NewDTDParser(p.Log)
 	extP.Filepaths = p.Filepaths

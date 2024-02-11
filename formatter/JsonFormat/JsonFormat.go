@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/blefort/DTDParser/DTD"
 	"github.com/blefort/DTDParser/formatter"
 	DTDParser "github.com/blefort/DTDParser/parser"
 	"go.uber.org/zap"
@@ -34,7 +33,7 @@ func (d *JsonFormat) ValidateOptions(f *formatter.Formatter) bool {
 
 // RenderDTD Render a collection to a or a set of DTD files
 func (d *JsonFormat) Render(f *formatter.Formatter, parentDir string) {
-
+	//var finalPath string
 	// we process here all the file path of all DTD parsed
 	// and determine the parent directory
 	// the parentDir will be happened to the output dir
@@ -42,33 +41,26 @@ func (d *JsonFormat) Render(f *formatter.Formatter, parentDir string) {
 
 	finalPath := f.OutputPath + "/data.json"
 	f.CreateOutputFile(finalPath)
-	d.RenderCollection(f.Parser, finalPath)
-
-	//p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
-
-	// process children parsers
-	l := len(f.Parser.Parsers)
-	for idx, parser := range f.Parser.Parsers {
-		d.log.Warnf("Render DTD's child '%d/%d'", idx+1, l)
-		d.RenderCollection(&parser, parentDir)
-	}
-
-}
-
-type JsonBlock struct {
-	Type    string
-	Element DTD.IDTDBlock
-}
-
-// Render Render DTD blocks
-func (d *JsonFormat) RenderCollection(parser *DTDParser.Parser, path string) {
-
-	s, err := json.MarshalIndent(parser.Elements, "", "  ")
+	s, err := json.MarshalIndent(DTDParser.Elements, "", "  ")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	d.writeToFile(path, string(s))
+	d.writeToFile(finalPath, string(s))
+
+	//p.Log.Warnf("Render DTD '%s', %d blocks, %d nested parsers", finalPath, len(p.Collection), len(p.parsers))
+
+	// process children parsers
+	// l := len(f.Parser.Parsers)
+
+	// for idx, parser := range f.Parser.Parsers {
+	// 	filename := filepath.Base(parser.Filepath)
+	// 	finalPath = fmt.Sprintf("%s/data-%s.json", f.OutputPath, filename)
+	// 	f.CreateOutputFile(finalPath)
+	// 	d.log.Warnf("Render DTD's child '%d/%d' '%s'", idx+1, l, finalPath)
+	// 	d.log.Warnf("Parsers has '%d' elements", len(parser.Elements))
+	// 	d.RenderCollection(&parser, parentDir)
+	// }
 
 }
 

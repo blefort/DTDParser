@@ -295,8 +295,10 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 	} else if e.Public {
 		e.Url = words[idx+2].Read()
 		e.Value = words[idx+1].Read()
-	} else if e.Parameter {
+	} else if e.Parameter && len(words) > 3 {
 		e.Value = words[3].Read()
+	} else if e.Parameter && len(words) == 3 {
+		e.Value = ""
 	} else {
 		e.Value = words[len(words)-1].Read()
 	}
@@ -305,7 +307,10 @@ func (sc *DTDScanner) ParseEntity(s *sentence) *DTD.Entity {
 		//	var contentPosition int
 		attWords := strings.Fields(e.Value)
 		words := newWordFromStringArr(&attWords, sc.Log)
-		sc.parseAttributes(words, &e.Attributes)
+		if len(words) >= 3 {
+			sc.parseAttributes(words, &e.Attributes)
+		}
+
 	}
 
 	return &e

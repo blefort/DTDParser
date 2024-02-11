@@ -36,7 +36,7 @@ func main() {
 	optionsParam := flag.String("options", "{ package=\"MyPackage\"", "Formatter options, appends options as a json string")
 	overwrite := flag.Bool("overwrite", false, "Overwrite output file")
 	verbosity := flag.String("verbosity", "", "Verbose v, vv or vvv")
-	ignoreExtRef := flag.Bool("ignore-external-dtd", false, "Do not process external DTD")
+	ignoreExtRef := flag.Bool("ignore-external-dtd", false, "Process external DTD, but do not stop in case of errors")
 
 	flag.Parse()
 
@@ -121,7 +121,7 @@ func main() {
 			format = JsonFormat.New(log)
 		}
 
-		formatter := formatter.NewFormatter(p, format, *outputDir, *outputFilename, log)
+		formatter := formatter.NewFormatter(p, format, outputDirAbs, *outputFilename, log)
 		formatter.Render()
 
 	}
